@@ -321,6 +321,10 @@ window.Render = {
         return `<span class="tag ${matched ? 'matched' : ''}">${matched ? '✓ ' : ''}${UI.esc(s)}</span>`;
       }).join('');
       const isSaved = State.savedInternships.indexOf(job.id) > -1;
+      const isApplied = State.applications.some(a => (a.jobId || a.job) === id);
+      const applyBtn = isApplied
+        ? `<button type="button" class="apply-link applied" id="apply-btn-${id}" disabled>✓ Applied</button>`
+        : `<button type="button" class="apply-link" id="apply-btn-${id}" onclick="App.applyJob('${id}')">Apply →</button>`;
       return `<div class="list-item">
         <button type="button" class="save-btn ${isSaved ? 'saved' : ''}" onclick="App.toggleSave(${job.id})">${isSaved ? '★' : '☆'}</button>
         <div class="item-row">
@@ -336,7 +340,7 @@ window.Render = {
           </div>
           <div class="item-side">
             <div class="match-badge">${job.match}% Match</div>
-            <button type="button" class="apply-link" onclick="App.applyJob('${id}')">Apply →</button>
+            ${applyBtn}
           </div>
         </div>
       </div>`;
@@ -2256,6 +2260,9 @@ window.App = {
       tab.style.display = r === role ? '' : 'none';
     });
     const mt = document.querySelector('.mobile-tabs'); if (mt) mt.style.display = 'none';
+    // Document Vault is a student-only feature — hide it for industry/academia accounts.
+    const docVaultBtn = document.getElementById('doc-vault-btn');
+    if (docVaultBtn) docVaultBtn.style.display = role === 'student' ? '' : 'none';
   },
   setAppView(view, btn) {
     State.appView = view;
@@ -2440,20 +2447,26 @@ window.App = {
   async applyJob(id) {
     const job = State.internships.find(j => (j._id || j.id) === id);
     if (!job) return;
+    const btn = document.getElementById(`apply-btn-${id}`);
+    if (btn) { btn.disabled = true; btn.textContent = 'Applying…'; }
     try {
       const app = await API.call('/api/applications', {
         method: 'POST',
         body: { jobId: id, position: job.title, company: job.company },
       });
       State.applications.unshift(app);
-      Render.applications(); Render.kanban(); Render.timeline(); Render.stats();
+      if (btn) { btn.textContent = '✓ Applied'; btn.classList.add('applied'); }
+      Render.applications(); Render.kanban(); Render.timeline(); Render.stats(); Render.internships();
       Toast.show(`Applied to "${job.title}"!`, 'success');
       try {
         const notifs = await API.call('/api/notifications');
         State.notifications = notifs || State.notifications;
         Render.stats();
       } catch (e) {}
-    } catch (err) { Toast.show(err.message, 'error'); }
+    } catch (err) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Apply →'; }
+      Toast.show(err.message, 'error');
+    }
   },
 
   withdrawApplication(id) { Modal.open('confirmModal', 'Withdraw Application?', 'This cannot be undone.', `App.performWithdraw('${id}')`); },

@@ -270,6 +270,7 @@ img,svg{display:block;max-width:100%}
 @media (max-width:640px){.item-row{flex-direction:column}.item-side{flex-direction:row;align-items:center}}
 .match-badge{font-size:12px;font-weight:800;color:#fff;padding:5px 12px;border-radius:999px;background:linear-gradient(135deg,var(--emerald-500),var(--emerald-600));white-space:nowrap;box-shadow:0 2px 6px rgba(16,185,129,.3)}
 .apply-link{font-size:12px;font-weight:700;color:var(--cse-700);padding:5px 10px;border-radius:6px;transition:all .15s}
+.apply-link.applied,.apply-link:disabled{color:var(--slate-400);cursor:default;background:var(--slate-100)}
 .apply-link:hover{color:var(--cse-900);background:var(--cse-50)}
 .top-match-tag{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;padding:3px 7px;border-radius:4px;color:#fff;background:linear-gradient(90deg,#fbbf24,var(--accent-500))}
 .item-type{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:3px 8px;border-radius:5px}
@@ -1035,7 +1036,7 @@ img,svg{display:block;max-width:100%}
         <button type="button" class="icon-btn" onclick="App.openGlobalSearch()" title="Search" style="font-size:14px;">⌘K</button>
         <button type="button" class="icon-btn" onclick="Modal.open('mentorsModal')" title="Mentor Network">👥</button>
         <button type="button" class="icon-btn" onclick="Modal.open('referralModal')" title="Refer a Friend">🎁</button>
-        <button type="button" class="icon-btn" onclick="App.openDocVault()" title="Document Vault">📁</button>
+        <button type="button" class="icon-btn" id="doc-vault-btn" onclick="App.openDocVault()" title="Document Vault">📁</button>
         <button type="button" class="icon-btn" onclick="Chat.toggle()" title="Messages" id="chat-bell">💬<span id="chat-badge" class="notif-badge hidden">0</span></button>
         <button type="button" class="icon-btn" onclick="App.openNotifications()" aria-label="Notifications" data-tour="notif-bell">🔔<span id="notif-badge" class="notif-badge hidden">0</span></button>
         <div class="user-pill" onclick="App.openProfileMenu()">
