@@ -16,7 +16,7 @@ window.API = {
     const res = await fetch(path, { method, headers, body: body ? JSON.stringify(body) : undefined });
     let data = null;
     try { data = await res.json(); } catch (e) {}
-    if (!res.ok) throw new Error((data && data.error) || `HTTP ${res.status}`);
+    if (!res.ok) throw new Error((data && data.error) || ('HTTP ' + res.status));
     return data;
   },
 };
@@ -57,16 +57,13 @@ window.UserRegistry = {
     const reg = this.getAll();
     const key = this.normalize(email);
     const existing = reg[key] || {};
-    // Merge extras instead of overwriting, so a login response with no/partial
-    // extras (e.g. institution, gradYear) never wipes out what was saved at signup.
-    // Only non-empty incoming values override what's already stored.
     const mergedExtras = Object.assign({}, existing.extras || {});
     Object.keys(extras || {}).forEach(k => {
       const v = extras[k];
       if (v !== undefined && v !== null && v !== '') mergedExtras[k] = v;
     });
     reg[key] = {
-      role,
+      role: role,
       name: name || existing.name || '',
       extras: mergedExtras,
       registeredAt: existing.registeredAt || new Date().toISOString(),
@@ -75,22 +72,22 @@ window.UserRegistry = {
     this.saveAll(reg);
   },
   roleLabel(r) { return { student: 'Student', industry: 'Industry', academia: 'Academia' }[r] || r; },
-  roleEmoji(r) { return { student: '🎓', industry: '🏢', academia: '🏛️' }[r] || '👤'; },
+  roleEmoji(r) { return { student: '\uD83C\uDF93', industry: '\uD83C\uDFE2', academia: '\uD83C\uDFDB\uFE0F' }[r] || '\uD83D\uDC64'; },
 };
 
 /* ================== UI HELPERS ================== */
 window.UI = {
   esc(s) { const d = document.createElement('div'); d.textContent = String(s == null ? '' : s); return d.innerHTML; },
-  statusBadge(t, l) { return `<span class="status ${t}">${this.esc(l)}</span>`; },
-  avatar(i, c, size) { return `<div class="avatar ${c} ${size === 'lg' ? 'lg' : ''}">${this.esc(i)}</div>`; },
-  empty(msg, icon) { return `<div class="empty"><div class="empty-icon">${icon || '📭'}</div><div class="empty-text">${this.esc(msg)}</div></div>`; },
-  progress(l) { return `<div class="progress"><div class="progress-fill" style="width:${Math.min(100, Math.max(0, l))}%"></div></div>`; },
+  statusBadge(t, l) { return '<span class="status ' + t + '">' + this.esc(l) + '</span>'; },
+  avatar(i, c, size) { return '<div class="avatar ' + c + ' ' + (size === 'lg' ? 'lg' : '') + '">' + this.esc(i) + '</div>'; },
+  empty(msg, icon) { return '<div class="empty"><div class="empty-icon">' + (icon || '\uD83D\uDCED') + '</div><div class="empty-text">' + this.esc(msg) + '</div></div>'; },
+  progress(l) { return '<div class="progress"><div class="progress-fill" style="width:' + Math.min(100, Math.max(0, l)) + '%"></div></div>'; },
   stars(r) {
     const full = Math.floor(r), half = r - full >= 0.5;
-    let s = ''; for (let i = 0; i < full; i++) s += '★';
-    if (half) s += '⯨';
-    for (let j = full + (half ? 1 : 0); j < 5; j++) s += '☆';
-    return `<span class="stars" title="${r}">${s}</span>`;
+    let s = ''; for (let i = 0; i < full; i++) s += '\u2605';
+    if (half) s += '\u2BE8';
+    for (let j = full + (half ? 1 : 0); j < 5; j++) s += '\u2606';
+    return '<span class="stars" title="' + r + '">' + s + '</span>';
   },
   fmtDate(d) {
     const date = new Date(d), now = new Date(), diff = Math.floor((now - date) / 86400000);
@@ -117,10 +114,10 @@ window.Toast = {
   show(msg, type) {
     type = type || 'info';
     const root = document.getElementById('toast-root'); if (!root) return;
-    const icons = { success: '✓', info: 'ℹ', error: '✕', warning: '⚠' };
+    const icons = { success: '\u2713', info: '\u2139', error: '\u2715', warning: '\u26A0' };
     const el = document.createElement('div');
     el.className = 'toast ' + type;
-    el.innerHTML = `<div class="toast-icon">${icons[type] || 'ℹ'}</div><div>${UI.esc(msg)}</div>`;
+    el.innerHTML = '<div class="toast-icon">' + (icons[type] || '\u2139') + '</div><div>' + UI.esc(msg) + '</div>';
     root.appendChild(el);
     setTimeout(() => { el.classList.add('exit'); setTimeout(() => el.remove(), 300); }, 4200);
   },
@@ -130,7 +127,7 @@ window.Toast = {
 window.Departments = {
   CSE: {
     name: 'Computer Science & Engineering', short: 'CSE',
-    subtitle: 'B.Tech CSE Final Year · National Institute of Engineering',
+    subtitle: 'B.Tech CSE Final Year \u00B7 National Institute of Engineering',
     skills: [
       { id: 1, name: 'Data Structures & Algorithms', level: 90, category: 'Core CS' },
       { id: 2, name: 'Full Stack Development', level: 85, category: 'Web' },
@@ -138,12 +135,12 @@ window.Departments = {
       { id: 4, name: 'Database Management', level: 80, category: 'Core CS' },
     ],
     internships: [
-      { id: 1, title: 'Software Development Engineer Intern', company: 'Google India', location: 'Bangalore', skills: ['DSA', 'System Design', 'C++'], type: 'Internship', salary: '₹80,000/mo', description: 'Work on scalable backend systems and distributed computing.', posted: '2026-03-01' },
-      { id: 2, title: 'Frontend Developer Intern', company: 'Microsoft', location: 'Hyderabad', skills: ['React', 'TypeScript', 'CSS'], type: 'Internship', salary: '₹65,000/mo', description: 'Build modern web applications using React and TypeScript.', posted: '2026-03-05' },
-      { id: 3, title: 'Machine Learning Engineer', company: 'Amazon', location: 'Bangalore', skills: ['Python', 'TensorFlow', 'ML'], type: 'Full-time', salary: '₹18 LPA', description: 'Design and deploy ML models for recommendation systems.', posted: '2026-03-03' },
-      { id: 4, title: 'Backend Developer Intern', company: 'Flipkart', location: 'Bangalore', skills: ['Java', 'Spring Boot', 'MySQL'], type: 'Internship', salary: '₹50,000/mo', description: 'Develop microservices for e-commerce platform.', posted: '2026-03-07' },
-      { id: 5, title: 'Cloud Engineer', company: 'Amazon Web Services', location: 'Hyderabad', skills: ['AWS', 'Docker', 'Kubernetes'], type: 'Full-time', salary: '₹16 LPA', description: 'Build and maintain cloud infrastructure.', posted: '2026-03-02' },
-      { id: 6, title: 'Data Science Intern', company: 'Microsoft', location: 'Hyderabad', skills: ['Python', 'Pandas', 'SQL'], type: 'Internship', salary: '₹55,000/mo', description: 'Analyze large datasets and build predictive models.', posted: '2026-03-09' },
+      { id: 1, title: 'Software Development Engineer Intern', company: 'Google India', location: 'Bangalore', skills: ['DSA', 'System Design', 'C++'], type: 'Internship', salary: '\u20B980,000/mo', description: 'Work on scalable backend systems and distributed computing.', posted: '2026-03-01' },
+      { id: 2, title: 'Frontend Developer Intern', company: 'Microsoft', location: 'Hyderabad', skills: ['React', 'TypeScript', 'CSS'], type: 'Internship', salary: '\u20B965,000/mo', description: 'Build modern web applications using React and TypeScript.', posted: '2026-03-05' },
+      { id: 3, title: 'Machine Learning Engineer', company: 'Amazon', location: 'Bangalore', skills: ['Python', 'TensorFlow', 'ML'], type: 'Full-time', salary: '\u20B918 LPA', description: 'Design and deploy ML models for recommendation systems.', posted: '2026-03-03' },
+      { id: 4, title: 'Backend Developer Intern', company: 'Flipkart', location: 'Bangalore', skills: ['Java', 'Spring Boot', 'MySQL'], type: 'Internship', salary: '\u20B950,000/mo', description: 'Develop microservices for e-commerce platform.', posted: '2026-03-07' },
+      { id: 5, title: 'Cloud Engineer', company: 'Amazon Web Services', location: 'Hyderabad', skills: ['AWS', 'Docker', 'Kubernetes'], type: 'Full-time', salary: '\u20B916 LPA', description: 'Build and maintain cloud infrastructure.', posted: '2026-03-02' },
+      { id: 6, title: 'Data Science Intern', company: 'Microsoft', location: 'Hyderabad', skills: ['Python', 'Pandas', 'SQL'], type: 'Internship', salary: '\u20B955,000/mo', description: 'Analyze large datasets and build predictive models.', posted: '2026-03-09' },
     ],
     skillGaps: [
       { id: 1, skill: 'System Design', demand: 'High', supply: 25, type: 'red', recommendation: 'Introduce advanced system design elective.' },
@@ -160,12 +157,12 @@ window.Departments = {
       { company: 'Microsoft', quote: 'Excellent frontend skills. Recommend adding TypeScript and testing frameworks to curriculum.', type: 'amber' },
       { company: 'Amazon', quote: 'Impressed with ML interns. Would like more candidates with cloud deployment experience.', type: 'blue' },
     ],
-    ticker: ['🎉 Priya Patel just got placed at Google India', '✨ 5 new CSE internships posted in the last hour', '📈 CSE placement rate up 6% this quarter', '🏢 Zoho just joined as an industry partner', '🎓 65 CSE students shortlisted this week'],
+    ticker: ['\uD83C\uDF89 Priya Patel just got placed at Google India', '\u2728 5 new CSE internships posted in the last hour', '\uD83D\uDCC8 CSE placement rate up 6% this quarter', '\uD83C\uDFE2 Zoho just joined as an industry partner', '\uD83C\uDF93 65 CSE students shortlisted this week'],
     quiz: [
       { q: 'What is the time complexity of binary search on a sorted array of n elements?', options: ['O(n)', 'O(log n)', 'O(n log n)', 'O(1)'], correct: 1 },
       { q: 'Which data structure uses FIFO (First In First Out) principle?', options: ['Stack', 'Queue', 'Tree', 'Graph'], correct: 1 },
       { q: 'What does HTML stand for?', options: ['Hyper Text Markup Language', 'High Text Machine Language', 'Hyper Tabular Markup Language', 'None of the above'], correct: 0 },
-      { q: 'What is the worst-case time complexity of QuickSort?', options: ['O(n log n)', 'O(n²)', 'O(n)', 'O(log n)'], correct: 1 },
+      { q: 'What is the worst-case time complexity of QuickSort?', options: ['O(n log n)', 'O(n\u00B2)', 'O(n)', 'O(log n)'], correct: 1 },
       { q: 'Which protocol is used for secure web browsing?', options: ['HTTP', 'FTP', 'HTTPS', 'SMTP'], correct: 2 },
       { q: 'In OOP, creating a new object from a class is called?', options: ['Encapsulation', 'Inheritance', 'Instantiation', 'Abstraction'], correct: 2 },
     ],
@@ -254,14 +251,14 @@ window.AI = {
   },
   insights() {
     const jobs = this.rankJobs(State.skills, State.internships);
-    const topMatch = jobs[0] || { match: 0, title: '—', company: '—' };
+    const topMatch = jobs[0] || { match: 0, title: '\u2014', company: '\u2014' };
     const avg = jobs.length ? jobs.reduce((a, j) => a + j.match, 0) / jobs.length : 0;
     const strong = State.skills.filter(s => s.level >= 85);
     const weak = State.skills.filter(s => s.level < 80);
     return {
-      topMatch, avgMatch: Math.round(avg),
+      topMatch: topMatch, avgMatch: Math.round(avg),
       strongCount: strong.length, weakCount: weak.length,
-      recommendedSkill: weak[0] ? weak[0].name : (State.skills[0] ? State.skills[0].name : '—'),
+      recommendedSkill: weak[0] ? weak[0].name : (State.skills[0] ? State.skills[0].name : '\u2014'),
     };
   },
 };
@@ -272,26 +269,15 @@ window.Render = {
     const c = document.getElementById('skills-container'); if (!c) return;
     const count = document.getElementById('skill-count');
     if (count) count.textContent = State.skills.length + ' skills';
-    if (!State.skills.length) { c.innerHTML = UI.empty('No skills added yet', '⚙'); return; }
+    if (!State.skills.length) { c.innerHTML = UI.empty('No skills added yet', '\u2699'); return; }
     c.innerHTML = State.skills.map(s => {
       const id = s._id || s.id;
-      return `<div class="skill-item">
-        <div class="skill-head">
-          <span class="skill-name">${UI.esc(s.name)}</span>
-          <div class="skill-actions">
-            <span class="skill-level">${s.level}%</span>
-            <button type="button" class="skill-edit" onclick="Modal.open('skillModal','${id}')">✎</button>
-            <button type="button" class="skill-del" onclick="App.deleteSkill('${id}')">✕</button>
-          </div>
-        </div>
-        ${UI.progress(s.level)}
-        <div class="skill-cat">${UI.esc(s.category)}</div>
-      </div>`;
+      return '<div class="skill-item"><div class="skill-head"><span class="skill-name">' + UI.esc(s.name) + '</span><div class="skill-actions"><span class="skill-level">' + s.level + '%</span><button type="button" class="skill-edit" onclick="Modal.open(\'skillModal\',\'' + id + '\')">\u270E</button><button type="button" class="skill-del" onclick="App.deleteSkill(\'' + id + '\')">\u2715</button></div></div>' + UI.progress(s.level) + '<div class="skill-cat">' + UI.esc(s.category) + '</div></div>';
     }).join('');
     const avg = State.skills.length ? Math.round(State.skills.reduce((a, s) => a + s.level, 0) / State.skills.length) : 0;
     const grade = avg >= 90 ? 'A+' : avg >= 80 ? 'A' : avg >= 70 ? 'B+' : avg >= 60 ? 'B' : 'C';
     const el = document.getElementById('stat-skill-score');
-    if (el) el.textContent = State.skills.length ? grade : '—';
+    if (el) el.textContent = State.skills.length ? grade : '\u2014';
   },
 
   internships(filter, sort) {
@@ -308,7 +294,7 @@ window.Render = {
     }
     if (sort === 'title') list.sort((a, b) => a.title.localeCompare(b.title));
     else if (sort === 'company') list.sort((a, b) => a.company.localeCompare(b.company));
-    if (!list.length) { c.innerHTML = UI.empty('No internships match', '🔍'); return; }
+    if (!list.length) { c.innerHTML = UI.empty('No internships match', '\uD83D\uDD0D'); return; }
     c.innerHTML = list.map(job => {
       const id = job._id || job.id;
       const isTop = job.match >= 90;
@@ -318,89 +304,50 @@ window.Render = {
           sk.name.toLowerCase().indexOf(s.toLowerCase()) > -1 ||
           s.toLowerCase().indexOf(sk.name.toLowerCase()) > -1
         );
-        return `<span class="tag ${matched ? 'matched' : ''}">${matched ? '✓ ' : ''}${UI.esc(s)}</span>`;
+        return '<span class="tag ' + (matched ? 'matched' : '') + '">' + (matched ? '\u2713 ' : '') + UI.esc(s) + '</span>';
       }).join('');
       const isSaved = State.savedInternships.indexOf(job.id) > -1;
-      const isApplied = State.applications.some(a => (a.jobId || a.job) === id);
+      const isApplied = State.applications.some(a => String(a.jobId || a.job || '') === String(id));
       const applyBtn = isApplied
-        ? `<button type="button" class="apply-link applied" id="apply-btn-${id}" disabled>✓ Applied</button>`
-        : `<button type="button" class="apply-link" id="apply-btn-${id}" onclick="App.applyJob('${id}')">Apply →</button>`;
-      return `<div class="list-item">
-        <button type="button" class="save-btn ${isSaved ? 'saved' : ''}" onclick="App.toggleSave(${job.id})">${isSaved ? '★' : '☆'}</button>
-        <div class="item-row">
-          <div class="item-main">
-            <div class="item-title-row">
-              <span class="item-title">${UI.esc(job.title)}</span>
-              ${isTop ? '<span class="top-match-tag">Top Match</span>' : ''}
-              <span class="item-type ${typeClass}">${job.type}</span>
-            </div>
-            <div class="item-meta">${UI.esc(job.company)} · ${UI.esc(job.location)} · ${UI.esc(job.salary)} · ${UI.fmtDate(job.posted)}</div>
-            ${job.description ? `<div class="item-desc">${UI.esc(job.description)}</div>` : ''}
-            <div class="tag-row">${tags}</div>
-          </div>
-          <div class="item-side">
-            <div class="match-badge">${job.match}% Match</div>
-            ${applyBtn}
-          </div>
-        </div>
-      </div>`;
+        ? '<button type="button" class="apply-link applied" id="apply-btn-' + id + '" disabled>\u2713 Applied</button>'
+        : '<button type="button" class="apply-link" id="apply-btn-' + id + '" onclick="App.applyJob(\'' + id + '\')">Apply \u2192</button>';
+      return '<div class="list-item"><button type="button" class="save-btn ' + (isSaved ? 'saved' : '') + '" onclick="App.toggleSave(' + job.id + ')">' + (isSaved ? '\u2605' : '\u2606') + '</button><div class="item-row"><div class="item-main"><div class="item-title-row"><span class="item-title">' + UI.esc(job.title) + '</span>' + (isTop ? '<span class="top-match-tag">Top Match</span>' : '') + '<span class="item-type ' + typeClass + '">' + job.type + '</span></div><div class="item-meta">' + UI.esc(job.company) + ' \u00B7 ' + UI.esc(job.location) + ' \u00B7 ' + UI.esc(job.salary) + ' \u00B7 ' + UI.fmtDate(job.posted) + '</div>' + (job.description ? '<div class="item-desc">' + UI.esc(job.description) + '</div>' : '') + '<div class="tag-row">' + tags + '</div></div><div class="item-side"><div class="match-badge">' + job.match + '% Match</div>' + applyBtn + '</div></div></div>';
     }).join('');
   },
 
   applications() {
     const tb = document.getElementById('applications-container'); if (!tb) return;
-    if (!State.applications.length) { tb.innerHTML = `<tr><td colspan="5">${UI.empty('No applications yet', '📋')}</td></tr>`; return; }
+    if (!State.applications.length) { tb.innerHTML = '<tr><td colspan="5">' + UI.empty('No applications yet', '\uD83D\uDCCB') + '</td></tr>'; return; }
     tb.innerHTML = State.applications.map(a => {
       const id = a._id || a.id;
-      return `<tr>
-        <td><strong>${UI.esc(a.position)}</strong></td>
-        <td style="color:var(--slate-600);">${UI.esc(a.company)}</td>
-        <td style="color:var(--slate-500);font-size:12px;">${UI.fmtDate(a.date)}</td>
-        <td>${UI.statusBadge(a.statusType, a.status)}</td>
-        <td class="right"><button type="button" class="link-danger" onclick="App.withdrawApplication('${id}')">Withdraw</button></td>
-      </tr>`;
+      return '<tr><td><strong>' + UI.esc(a.position) + '</strong></td><td style="color:var(--slate-600);">' + UI.esc(a.company) + '</td><td style="color:var(--slate-500);font-size:12px;">' + UI.fmtDate(a.date) + '</td><td>' + UI.statusBadge(a.statusType, a.status) + '</td><td class="right"><button type="button" class="link-danger" onclick="App.withdrawApplication(\'' + id + '\')">Withdraw</button></td></tr>';
     }).join('');
   },
 
   kanban() {
     const c = document.getElementById('kanban-container'); if (!c) return;
     const stages = [
-      { id: 'applied', label: '📥 Applied' }, { id: 'review', label: '👀 In Review' },
-      { id: 'shortlist', label: '⭐ Shortlisted' }, { id: 'offer', label: '🎉 Offer' },
+      { id: 'applied', label: '\uD83D\uDCE5 Applied' }, { id: 'review', label: '\uD83D\uDC40 In Review' },
+      { id: 'shortlist', label: '\u2B50 Shortlisted' }, { id: 'offer', label: '\uD83C\uDF89 Offer' },
     ];
     c.innerHTML = stages.map(stage => {
       const apps = State.applications.filter(a => (a.stage || 'applied') === stage.id);
       const cards = apps.length ? apps.map(a => {
         const id = a._id || a.id;
-        return `<div class="kanban-card" draggable="true" data-app-id="${id}" ondragstart="App.dragStart(event)" ondragend="App.dragEnd(event)">
-          <div class="kanban-card-title">${UI.esc(a.position)}</div>
-          <div class="kanban-card-company">${UI.esc(a.company)}</div>
-          <div class="kanban-card-meta">
-            <span style="font-size:10px;color:var(--slate-400);">${UI.fmtDate(a.date)}</span>
-            <span class="status ${a.statusType}" style="font-size:9px;">${UI.esc(a.status)}</span>
-          </div>
-        </div>`;
+        return '<div class="kanban-card" draggable="true" data-app-id="' + id + '" ondragstart="App.dragStart(event)" ondragend="App.dragEnd(event)"><div class="kanban-card-title">' + UI.esc(a.position) + '</div><div class="kanban-card-company">' + UI.esc(a.company) + '</div><div class="kanban-card-meta"><span style="font-size:10px;color:var(--slate-400);">' + UI.fmtDate(a.date) + '</span><span class="status ' + a.statusType + '" style="font-size:9px;">' + UI.esc(a.status) + '</span></div></div>';
       }).join('') : '<div style="text-align:center;padding:20px;color:var(--slate-400);font-size:12px;">Drop here</div>';
-      return `<div class="kanban-col" data-stage="${stage.id}" ondragover="App.dragOver(event)" ondragleave="App.dragLeave(event)" ondrop="App.drop(event)">
-        <div class="kanban-col-title">${stage.label}<span class="kanban-col-count">${apps.length}</span></div>
-        <div>${cards}</div>
-      </div>`;
+      return '<div class="kanban-col" data-stage="' + stage.id + '" ondragover="App.dragOver(event)" ondragleave="App.dragLeave(event)" ondrop="App.drop(event)"><div class="kanban-col-title">' + stage.label + '<span class="kanban-col-count">' + apps.length + '</span></div><div>' + cards + '</div></div>';
     }).join('');
   },
 
   timeline() {
     const c = document.getElementById('timeline-container'); if (!c) return;
-    if (!State.applications.length) { c.innerHTML = UI.empty('No activity yet', '📅'); return; }
+    if (!State.applications.length) { c.innerHTML = UI.empty('No activity yet', '\uD83D\uDCC5'); return; }
     const sorted = State.applications.slice().sort((a, b) => new Date(b.date) - new Date(a.date));
     c.innerHTML = sorted.map(a => {
       const dot = a.statusType === 'success' ? 'success' : a.statusType === 'warning' ? 'warning' : 'info';
-      const icon = a.statusType === 'success' ? '✓' : a.statusType === 'warning' ? '👀' : '📥';
-      return `<div class="timeline-item">
-        <div class="timeline-dot ${dot}">${icon}</div>
-        <div class="timeline-title">${UI.esc(a.position)} — ${UI.esc(a.status)}</div>
-        <div class="timeline-desc">${UI.esc(a.company)}</div>
-        <div class="timeline-date">${UI.fmtDate(a.date)}</div>
-      </div>`;
+      const icon = a.statusType === 'success' ? '\u2713' : a.statusType === 'warning' ? '\uD83D\uDC40' : '\uD83D\uDCE5';
+      return '<div class="timeline-item"><div class="timeline-dot ' + dot + '">' + icon + '</div><div class="timeline-title">' + UI.esc(a.position) + ' \u2014 ' + UI.esc(a.status) + '</div><div class="timeline-desc">' + UI.esc(a.company) + '</div><div class="timeline-date">' + UI.fmtDate(a.date) + '</div></div>';
     }).join('');
   },
 
@@ -419,93 +366,35 @@ window.Render = {
       list = list.map(cand => Object.assign({}, cand, { match: cand.match || 85 }));
     }
     if (filter !== 'all') list = list.filter(x => x.match >= parseInt(filter, 10));
-    if (!list.length) { c.innerHTML = UI.empty('No candidates match', '👥'); return; }
+    if (!list.length) { c.innerHTML = UI.empty('No candidates match', '\uD83D\uDC65'); return; }
     c.innerHTML = list.map(x => {
-      const tags = (x.skills || []).map(s => `<span class="tag">${UI.esc(s)}</span>`).join('');
+      const tags = (x.skills || []).map(s => '<span class="tag">' + UI.esc(s) + '</span>').join('');
       const checked = State.compareList.indexOf(x.id) > -1;
       const compareBox = State.compareMode
-        ? `<div class="compare-checkbox ${checked ? 'checked' : ''}" onclick="event.stopPropagation(); Compare.toggle(${x.id})">${checked ? '✓' : ''}</div>`
+        ? '<div class="compare-checkbox ' + (checked ? 'checked' : '') + '" onclick="event.stopPropagation(); Compare.toggle(' + x.id + ')">' + (checked ? '\u2713' : '') + '</div>'
         : '';
-      return `<div class="list-item">
-        <div class="item-row">
-          <div class="avatar-row">
-            ${compareBox}
-            ${UI.avatar(x.initials, x.color)}
-            <div style="flex:1;min-width:0;">
-              <div style="display:flex;align-items:center;gap:8px;">
-                <span class="item-title">${UI.esc(x.name)}</span>${UI.stars(x.rating || 4.5)}
-              </div>
-              <div class="item-meta">${UI.esc(x.degree)} · ${UI.esc(x.institute)}</div>
-              <div class="tag-row">${tags}</div>
-            </div>
-          </div>
-          <div class="item-side">
-            <div class="match-badge">${x.match}% Match</div>
-            <button type="button" class="apply-link" onclick="App.viewProfile(${x.id})">View →</button>
-          </div>
-        </div>
-      </div>`;
+      return '<div class="list-item"><div class="item-row"><div class="avatar-row">' + compareBox + UI.avatar(x.initials, x.color) + '<div style="flex:1;min-width:0;"><div style="display:flex;align-items:center;gap:8px;"><span class="item-title">' + UI.esc(x.name) + '</span>' + UI.stars(x.rating || 4.5) + '</div><div class="item-meta">' + UI.esc(x.degree) + ' \u00B7 ' + UI.esc(x.institute) + '</div><div class="tag-row">' + tags + '</div></div></div><div class="item-side"><div class="match-badge">' + x.match + '% Match</div><button type="button" class="apply-link" onclick="App.viewProfile(' + x.id + ')">View \u2192</button></div></div></div>';
     }).join('');
   },
 
   myPostings() {
     const c = document.getElementById('my-postings-container'); if (!c) return;
-    if (!State.myPostings.length) { c.innerHTML = UI.empty('No postings yet', '📢'); return; }
+    if (!State.myPostings.length) { c.innerHTML = UI.empty('No postings yet', '\uD83D\uDCE2'); return; }
     c.innerHTML = State.myPostings.map(p => {
       const id = p._id || p.id;
-      return `<div class="list-item">
-        <div class="item-row">
-          <div class="item-main">
-            <div class="item-title-row">
-              <span class="item-title">${UI.esc(p.title)}</span>${UI.statusBadge('success', p.status)}
-            </div>
-            <div class="item-meta">${UI.esc(p.location)} · ${UI.esc(p.type)} · Posted ${UI.fmtDate(p.posted)}</div>
-          </div>
-          <div class="item-side" style="flex-direction:row;align-items:center;gap:18px;">
-            <div style="text-align:center;"><div style="font-size:20px;font-weight:800;">${p.applicants}</div><div style="font-size:10px;color:var(--slate-500);text-transform:uppercase;font-weight:700;">Applicants</div></div>
-            <div style="text-align:center;"><div style="font-size:20px;font-weight:800;color:#047857;">${p.shortlisted}</div><div style="font-size:10px;color:var(--slate-500);text-transform:uppercase;font-weight:700;">Shortlisted</div></div>
-            <button type="button" class="link-danger" onclick="App.deletePosting('${id}')">Close</button>
-          </div>
-        </div>
-      </div>`;
+      return '<div class="list-item"><div class="item-row"><div class="item-main"><div class="item-title-row"><span class="item-title">' + UI.esc(p.title) + '</span>' + UI.statusBadge('success', p.status) + '</div><div class="item-meta">' + UI.esc(p.location) + ' \u00B7 ' + UI.esc(p.type) + ' \u00B7 Posted ' + UI.fmtDate(p.posted) + '</div></div><div class="item-side" style="flex-direction:row;align-items:center;gap:18px;"><div style="text-align:center;"><div style="font-size:20px;font-weight:800;">' + p.applicants + '</div><div style="font-size:10px;color:var(--slate-500);text-transform:uppercase;font-weight:700;">Applicants</div></div><div style="text-align:center;"><div style="font-size:20px;font-weight:800;color:#047857;">' + p.shortlisted + '</div><div style="font-size:10px;color:var(--slate-500);text-transform:uppercase;font-weight:700;">Shortlisted</div></div><button type="button" class="link-danger" onclick="App.deletePosting(\'' + id + '\')">Close</button></div></div></div>';
     }).join('');
   },
 
   insights() {
     const c = document.getElementById('insights-container'); if (!c) return;
     const i = AI.insights();
-    c.innerHTML = `
-      <div class="insight-card" onclick="App.openTopMatchModal()" role="button" tabindex="0">
-        <div class="insight-icon green">🎯</div>
-        <div class="insight-title">Top Match</div>
-        <div class="insight-value">${i.topMatch.match}%</div>
-        <div class="insight-desc">Your best fit is <strong>${UI.esc(i.topMatch.title)}</strong> at ${UI.esc(i.topMatch.company)}</div>
-      </div>
-      <div class="insight-card" onclick="App.openAverageMatchModal()" role="button" tabindex="0">
-        <div class="insight-icon saffron">📈</div>
-        <div class="insight-title">Average Match</div>
-        <div class="insight-value">${i.avgMatch}%</div>
-        <div class="insight-desc">Across all ${State.internships.length} opportunities</div>
-      </div>
-      <div class="insight-card" onclick="App.openStrongSkillsModal()" role="button" tabindex="0">
-        <div class="insight-icon blue">💪</div>
-        <div class="insight-title">Strong Skills</div>
-        <div class="insight-value">${i.strongCount}</div>
-        <div class="insight-desc">${i.weakCount > 0 ? `Focus on improving <strong>${UI.esc(i.recommendedSkill)}</strong>` : 'All skills are strong!'}</div>
-      </div>`;
+    c.innerHTML = '<div class="insight-card" onclick="App.openTopMatchModal()" role="button" tabindex="0"><div class="insight-icon green">\uD83C\uDFAF</div><div class="insight-title">Top Match</div><div class="insight-value">' + i.topMatch.match + '%</div><div class="insight-desc">Your best fit is <strong>' + UI.esc(i.topMatch.title) + '</strong> at ' + UI.esc(i.topMatch.company) + '</div></div><div class="insight-card" onclick="App.openAverageMatchModal()" role="button" tabindex="0"><div class="insight-icon saffron">\uD83D\uDCC8</div><div class="insight-title">Average Match</div><div class="insight-value">' + i.avgMatch + '%</div><div class="insight-desc">Across all ' + State.internships.length + ' opportunities</div></div><div class="insight-card" onclick="App.openStrongSkillsModal()" role="button" tabindex="0"><div class="insight-icon blue">\uD83D\uDCAA</div><div class="insight-title">Strong Skills</div><div class="insight-value">' + i.strongCount + '</div><div class="insight-desc">' + (i.weakCount > 0 ? 'Focus on improving <strong>' + UI.esc(i.recommendedSkill) + '</strong>' : 'All skills are strong!') + '</div></div>';
   },
 
   skillGaps() {
     const c = document.getElementById('skill-gaps-container'); if (!c) return;
-    c.innerHTML = State.skillGaps.map(g => `
-      <div class="gap-item">
-        <div class="gap-head">
-          <span class="gap-name">${UI.esc(g.skill)}</span>
-          <span class="gap-demand ${g.type}">${g.demand} · ${g.supply}%</span>
-        </div>
-        <div class="gap-progress"><div class="gap-fill ${g.type}" style="width:${g.supply}%"></div></div>
-        <div class="gap-rec">💡 ${UI.esc(g.recommendation)}</div>
-      </div>`).join('');
+    c.innerHTML = State.skillGaps.map(g => '<div class="gap-item"><div class="gap-head"><span class="gap-name">' + UI.esc(g.skill) + '</span><span class="gap-demand ' + g.type + '">' + g.demand + ' \u00B7 ' + g.supply + '%</span></div><div class="gap-progress"><div class="gap-fill ' + g.type + '" style="width:' + g.supply + '%"></div></div><div class="gap-rec">\uD83D\uDCA1 ' + UI.esc(g.recommendation) + '</div></div>').join('');
   },
 
   trends() {
@@ -519,62 +408,33 @@ window.Render = {
         y: h - ((t.value - min) / (max - min)) * (h - 40) - 20,
         year: t.year, value: t.value,
       }));
-      const path = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
-      const area = `${path} L ${pts[pts.length - 1].x} ${h} L ${pts[0].x} ${h} Z`;
-      const circles = pts.map(p => `
-        <circle cx="${p.x}" cy="${p.y}" r="5" fill="white" stroke="#1e3a8a" stroke-width="2.5"/>
-        <text x="${p.x}" y="${p.y - 12}" text-anchor="middle" font-size="10" font-weight="800" fill="#1e3a8a">${p.value}%</text>
-        <text x="${p.x}" y="${h - 4}" text-anchor="middle" font-size="10" font-weight="600" fill="#64748b">${p.year}</text>`).join('');
-      c.innerHTML = `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:220px;">
-        <defs><linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#1e3a8a" stop-opacity="0.25"/>
-          <stop offset="100%" stop-color="#1e3a8a" stop-opacity="0"/>
-        </linearGradient></defs>
-        <path d="${area}" fill="url(#areaGrad)"/>
-        <path d="${path}" fill="none" stroke="#1e3a8a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-        ${circles}</svg>`;
+      const path = pts.map((p, i) => (i === 0 ? 'M' : 'L') + ' ' + p.x + ' ' + p.y).join(' ');
+      const area = path + ' L ' + pts[pts.length - 1].x + ' ' + h + ' L ' + pts[0].x + ' ' + h + ' Z';
+      const circles = pts.map(p => '<circle cx="' + p.x + '" cy="' + p.y + '" r="5" fill="white" stroke="#1e3a8a" stroke-width="2.5"/><text x="' + p.x + '" y="' + (p.y - 12) + '" text-anchor="middle" font-size="10" font-weight="800" fill="#1e3a8a">' + p.value + '%</text><text x="' + p.x + '" y="' + (h - 4) + '" text-anchor="middle" font-size="10" font-weight="600" fill="#64748b">' + p.year + '</text>').join('');
+      c.innerHTML = '<svg viewBox="0 0 ' + w + ' ' + h + '" style="width:100%;height:220px;"><defs><linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#1e3a8a" stop-opacity="0.25"/><stop offset="100%" stop-color="#1e3a8a" stop-opacity="0"/></linearGradient></defs><path d="' + area + '" fill="url(#areaGrad)"/><path d="' + path + '" fill="none" stroke="#1e3a8a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>' + circles + '</svg>';
     } else {
       const maxB = Math.max.apply(null, State.trends.map(t => t.value));
-      c.innerHTML = `<div class="bar-chart">${State.trends.map((t, i) => {
+      c.innerHTML = '<div class="bar-chart">' + State.trends.map((t, i) => {
         const hh = (t.value / maxB) * 100;
         const latest = i === State.trends.length - 1;
-        return `<div class="bar-wrap">
-          <div class="bar ${latest ? 'active' : ''}" style="height:${hh}%;"><span class="bar-label">${t.value}%</span></div>
-          <div class="bar-year">${t.year}</div>
-        </div>`;
-      }).join('')}</div>`;
+        return '<div class="bar-wrap"><div class="bar ' + (latest ? 'active' : '') + '" style="height:' + hh + '%;"><span class="bar-label">' + t.value + '%</span></div><div class="bar-year">' + t.year + '</div></div>';
+      }).join('') + '</div>';
     }
   },
 
   trendingSkills() {
     const c = document.getElementById('trending-skills-container'); if (!c) return;
-    c.innerHTML = State.trendingSkills.map(s => `
-      <div class="trend-item">
-        <div class="trend-name">${UI.esc(s.name)}</div>
-        <div class="trend-bar"><div class="trend-fill" style="width:${s.value}%"></div></div>
-        <div class="trend-val">${s.value}%</div>
-      </div>`).join('');
+    c.innerHTML = State.trendingSkills.map(s => '<div class="trend-item"><div class="trend-name">' + UI.esc(s.name) + '</div><div class="trend-bar"><div class="trend-fill" style="width:' + s.value + '%"></div></div><div class="trend-val">' + s.value + '%</div></div>').join('');
   },
 
   feedback() {
     const c = document.getElementById('feedback-container'); if (!c) return;
-    c.innerHTML = State.feedback.map(f => `
-      <div class="feedback-item ${f.type}">
-        <div class="feedback-quote">"${UI.esc(f.quote)}"</div>
-        <div class="feedback-source">— ${UI.esc(f.company)}</div>
-      </div>`).join('');
+    c.innerHTML = State.feedback.map(f => '<div class="feedback-item ' + f.type + '"><div class="feedback-quote">"' + UI.esc(f.quote) + '"</div><div class="feedback-source">\u2014 ' + UI.esc(f.company) + '</div></div>').join('');
   },
 
   activities() {
     const c = document.getElementById('activity-container'); if (!c) return;
-    c.innerHTML = State.activities.map(a => `
-      <div class="activity-item">
-        <div class="activity-dot"></div>
-        <div>
-          <div class="activity-text">${UI.esc(a.text)}</div>
-          <div class="activity-time">${UI.esc(a.time)}</div>
-        </div>
-      </div>`).join('');
+    c.innerHTML = State.activities.map(a => '<div class="activity-item"><div class="activity-dot"></div><div><div class="activity-text">' + UI.esc(a.text) + '</div><div class="activity-time">' + UI.esc(a.time) + '</div></div></div>').join('');
   },
 
   stats() {
@@ -607,7 +467,7 @@ window.Modal = {
     if (!tpl) { Toast.show('Modal "' + id + '" not found', 'error'); return; }
     this.currentId = id;
     const content = typeof tpl === 'function' ? tpl.apply(this, args) : tpl;
-    root.innerHTML = `<div class="modal-overlay" onclick="if(event.target===this) Modal.close()">${content}</div>`;
+    root.innerHTML = '<div class="modal-overlay" onclick="if(event.target===this) Modal.close()">' + content + '</div>';
     document.body.style.overflow = 'hidden';
     this._esc = e => { if (e.key === 'Escape') Modal.close(); };
     document.addEventListener('keydown', this._esc);
@@ -627,226 +487,93 @@ window.Modal = {
     if (wasVideo) App.stopVideoCall();
     if (State.reset.resendTimer) { clearInterval(State.reset.resendTimer); State.reset.resendTimer = null; }
   },
-  templates: {}
+  templates: {},
 };
 
 /* ---- Modal templates ---- */
 Modal.templates.genericListModal = function (title, bodyHtml) {
-  return `<div class="modal modal-lg">
-    <div class="modal-head"><h3 class="modal-title">${UI.esc(title)}</h3><button type="button" class="modal-close" onclick="Modal.close()">×</button></div>
-    <div class="modal-body" style="padding:0;">${bodyHtml || UI.empty('Nothing here')}</div>
-    <div class="modal-foot"><button type="button" class="btn btn-primary" onclick="Modal.close()">Close</button></div>
-  </div>`;
+  return '<div class="modal modal-lg"><div class="modal-head"><h3 class="modal-title">' + UI.esc(title) + '</h3><button type="button" class="modal-close" onclick="Modal.close()">\u00D7</button></div><div class="modal-body" style="padding:0;">' + (bodyHtml || UI.empty('Nothing here')) + '</div><div class="modal-foot"><button type="button" class="btn btn-primary" onclick="Modal.close()">Close</button></div></div>';
 };
 
 Modal.templates.resumeModal = function () {
-  const info = State.resume ? `<div class="uploaded-info">✓ Uploaded: <strong>${UI.esc(State.resume.name)}</strong> (${Math.round(State.resume.size / 1024)} KB)</div>` : '';
+  const info = State.resume ? '<div class="uploaded-info">\u2713 Uploaded: <strong>' + UI.esc(State.resume.name) + '</strong> (' + Math.round(State.resume.size / 1024) + ' KB)</div>' : '';
   const buttons = State.resume
-    ? `<button type="button" class="btn btn-outline" onclick="Modal.close()">Close</button><button type="button" class="btn btn-danger" onclick="App.removeResume()">Remove</button>`
-    : `<button type="button" class="btn btn-outline" onclick="Modal.close()">Cancel</button><button type="button" class="btn btn-primary" onclick="App.handleUpload()">Choose File</button>`;
-  return `<div class="modal modal-md">
-    <div class="modal-head"><h3 class="modal-title">Upload Resume</h3><button type="button" class="modal-close" onclick="Modal.close()">×</button></div>
-    <div class="modal-body">
-      ${info}
-      <div id="drop-zone" class="drop-zone">
-        <div class="drop-icon">📄</div>
-        <div class="drop-title">Drop your resume or click to browse</div>
-        <div class="drop-sub">PDF, DOC up to 5MB · AI will auto-parse</div>
-      </div>
-      <input type="file" id="resume-input" accept=".pdf,.doc,.docx" style="display:none;">
-    </div>
-    <div class="modal-foot">${buttons}</div>
-  </div>`;
+    ? '<button type="button" class="btn btn-outline" onclick="Modal.close()">Close</button><button type="button" class="btn btn-danger" onclick="App.removeResume()">Remove</button>'
+    : '<button type="button" class="btn btn-outline" onclick="Modal.close()">Cancel</button><button type="button" class="btn btn-primary" onclick="App.handleUpload()">Choose File</button>';
+  return '<div class="modal modal-md"><div class="modal-head"><h3 class="modal-title">Upload Resume</h3><button type="button" class="modal-close" onclick="Modal.close()">\u00D7</button></div><div class="modal-body">' + info + '<div id="drop-zone" class="drop-zone"><div class="drop-icon">\uD83D\uDCC4</div><div class="drop-title">Drop your resume or click to browse</div><div class="drop-sub">PDF, DOC up to 5MB \u00B7 AI will auto-parse</div></div><input type="file" id="resume-input" accept=".pdf,.doc,.docx" style="display:none;"></div><div class="modal-foot">' + buttons + '</div></div>';
 };
 
 Modal.templates.parsedResumeModal = function () {
-  const r = State.resume; if (!r) return `<div class="modal modal-sm"><div class="modal-body">${UI.empty('No resume uploaded')}</div></div>`;
+  const r = State.resume; if (!r) return '<div class="modal modal-sm"><div class="modal-body">' + UI.empty('No resume uploaded') + '</div></div>';
   const p = r.parsed || {};
-  return `<div class="modal modal-md">
-    <div class="modal-head"><h3 class="modal-title">✅ Resume Parsed</h3><button type="button" class="modal-close" onclick="Modal.close()">×</button></div>
-    <div class="modal-body">
-      <div class="uploaded-info" style="margin-bottom:18px;">📄 <strong>${UI.esc(r.name)}</strong> · ${Math.round(r.size / 1024)} KB</div>
-      <div class="parsed-field"><span class="parsed-label">Name</span><span class="parsed-value">${UI.esc(p.name || '—')}</span></div>
-      <div class="parsed-field"><span class="parsed-label">Email</span><span class="parsed-value">${UI.esc(p.email || '—')}</span></div>
-      <div class="parsed-field"><span class="parsed-label">Degree</span><span class="parsed-value">${UI.esc(p.degree || '—')}</span></div>
-      <div class="parsed-field"><span class="parsed-label">Skills Found</span><span class="parsed-value">${p.skills || 0}</span></div>
-    </div>
-    <div class="modal-foot">
-      <button type="button" class="btn btn-outline" onclick="Modal.close()">Skip</button>
-      <button type="button" class="btn btn-primary" onclick="App.applyParsedSkills(); Modal.close();">Add Skills →</button>
-    </div>
-  </div>`;
+  return '<div class="modal modal-md"><div class="modal-head"><h3 class="modal-title">\u2705 Resume Parsed</h3><button type="button" class="modal-close" onclick="Modal.close()">\u00D7</button></div><div class="modal-body"><div class="uploaded-info" style="margin-bottom:18px;">\uD83D\uDCC4 <strong>' + UI.esc(r.name) + '</strong> \u00B7 ' + Math.round(r.size / 1024) + ' KB</div><div class="parsed-field"><span class="parsed-label">Name</span><span class="parsed-value">' + UI.esc(p.name || '\u2014') + '</span></div><div class="parsed-field"><span class="parsed-label">Email</span><span class="parsed-value">' + UI.esc(p.email || '\u2014') + '</span></div><div class="parsed-field"><span class="parsed-label">Degree</span><span class="parsed-value">' + UI.esc(p.degree || '\u2014') + '</span></div><div class="parsed-field"><span class="parsed-label">Skills Found</span><span class="parsed-value">' + (p.skills || 0) + '</span></div></div><div class="modal-foot"><button type="button" class="btn btn-outline" onclick="Modal.close()">Skip</button><button type="button" class="btn btn-primary" onclick="App.applyParsedSkills(); Modal.close();">Add Skills \u2192</button></div></div>';
 };
 
 Modal.templates.skillModal = function (editId) {
   const skill = editId ? State.skills.filter(s => (s._id || s.id) === editId)[0] : null;
   const isEdit = !!skill;
   const cats = ['Core CS', 'Web', 'AI/ML', 'Data Science', 'Cloud', 'Cybersecurity', 'Design', 'General', 'Programming', 'Database'];
-  const catOpts = cats.map(c => `<option ${isEdit && skill.category === c ? 'selected' : ''}>${c}</option>`).join('');
-  return `<div class="modal modal-md">
-    <div class="modal-head"><h3 class="modal-title">${isEdit ? 'Edit Skill' : 'Add New Skill'}</h3><button type="button" class="modal-close" onclick="Modal.close()">×</button></div>
-    <div class="modal-body">
-      <div class="field"><label>Skill Name</label><input id="new-skill-name" type="text" maxlength="60" class="input" placeholder="e.g., React.js" value="${isEdit ? UI.esc(skill.name) : ''}"></div>
-      <div class="field"><label>Category</label><select id="new-skill-category" class="input">${catOpts}</select></div>
-      <div class="field">
-        <label>Proficiency</label>
-        <input id="new-skill-level" type="range" min="0" max="100" value="${isEdit ? skill.level : 70}" class="slider" oninput="document.getElementById('skill-level-display').textContent = this.value + '%'">
-        <div id="skill-level-display" class="slider-value">${isEdit ? skill.level : 70}%</div>
-      </div>
-    </div>
-    <div class="modal-foot">
-      <button type="button" class="btn btn-outline" onclick="Modal.close()">Cancel</button>
-      <button type="button" class="btn btn-primary" onclick="App.${isEdit ? `updateSkill('${editId}')` : 'addSkill()'}">${isEdit ? 'Save' : 'Add'}</button>
-    </div>
-  </div>`;
+  const catOpts = cats.map(c => '<option ' + (isEdit && skill.category === c ? 'selected' : '') + '>' + c + '</option>').join('');
+  return '<div class="modal modal-md"><div class="modal-head"><h3 class="modal-title">' + (isEdit ? 'Edit Skill' : 'Add New Skill') + '</h3><button type="button" class="modal-close" onclick="Modal.close()">\u00D7</button></div><div class="modal-body"><div class="field"><label>Skill Name</label><input id="new-skill-name" type="text" maxlength="60" class="input" placeholder="e.g., React.js" value="' + (isEdit ? UI.esc(skill.name) : '') + '"></div><div class="field"><label>Category</label><select id="new-skill-category" class="input">' + catOpts + '</select></div><div class="field"><label>Proficiency</label><input id="new-skill-level" type="range" min="0" max="100" value="' + (isEdit ? skill.level : 70) + '" class="slider" oninput="document.getElementById(\'skill-level-display\').textContent = this.value + \'%\'"><div id="skill-level-display" class="slider-value">' + (isEdit ? skill.level : 70) + '%</div></div></div><div class="modal-foot"><button type="button" class="btn btn-outline" onclick="Modal.close()">Cancel</button><button type="button" class="btn btn-primary" onclick="App.' + (isEdit ? 'updateSkill(\'' + editId + '\')' : 'addSkill()') + '">' + (isEdit ? 'Save' : 'Add') + '</button></div></div>';
 };
 
 Modal.templates.postJobModal = function () {
-  return `<div class="modal modal-lg">
-    <div class="modal-head"><h3 class="modal-title">Post New Opportunity</h3><button type="button" class="modal-close" onclick="Modal.close()">×</button></div>
-    <div class="modal-body">
-      <div class="field"><label>Field / Domain *</label>
-        <select id="job-department" class="input">
-          <option value="">— Select field —</option>
-          <option value="CSE">Computer Science</option><option value="IT">Information Technology</option>
-          <option value="AIDS">AI & Data Science</option><option value="ECE">Electronics</option>
-          <option value="EEE">Electrical</option><option value="MECH">Mechanical</option>
-          <option value="CIVIL">Civil</option><option value="BCOM">B.Com</option><option value="BBA">BBA</option>
-        </select>
-      </div>
-      <div class="field"><label>Job Title *</label><input id="job-title" type="text" class="input" placeholder="e.g., Software Engineer"></div>
-      <div class="field"><label>Location</label><input id="job-location" type="text" class="input" placeholder="e.g., Bangalore"></div>
-      <div class="field"><label>Skills * (comma-separated)</label><textarea id="job-skills" class="input" rows="3" placeholder="React, Node.js, MongoDB"></textarea></div>
-      <div class="field"><label>Description</label><textarea id="job-description" class="input" rows="2"></textarea></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-        <div class="field"><label>Type</label><select id="job-type" class="input"><option>Internship</option><option>Full-time</option><option>Part-time</option></select></div>
-        <div class="field"><label>Salary</label><input id="job-salary" type="text" class="input" placeholder="₹50,000/month"></div>
-      </div>
-    </div>
-    <div class="modal-foot">
-      <button type="button" class="btn btn-outline" onclick="Modal.close()">Cancel</button>
-      <button type="button" class="btn btn-primary" onclick="App.postJob()">Post</button>
-    </div>
-  </div>`;
+  return '<div class="modal modal-lg"><div class="modal-head"><h3 class="modal-title">Post New Opportunity</h3><button type="button" class="modal-close" onclick="Modal.close()">\u00D7</button></div><div class="modal-body"><div class="field"><label>Field / Domain *</label><select id="job-department" class="input"><option value="">\u2014 Select field \u2014</option><option value="CSE">Computer Science</option><option value="IT">Information Technology</option><option value="AIDS">AI & Data Science</option><option value="ECE">Electronics</option><option value="EEE">Electrical</option><option value="MECH">Mechanical</option><option value="CIVIL">Civil</option><option value="BCOM">B.Com</option><option value="BBA">BBA</option></select></div><div class="field"><label>Job Title *</label><input id="job-title" type="text" class="input" placeholder="e.g., Software Engineer"></div><div class="field"><label>Location</label><input id="job-location" type="text" class="input" placeholder="e.g., Bangalore"></div><div class="field"><label>Skills * (comma-separated)</label><textarea id="job-skills" class="input" rows="3" placeholder="React, Node.js, MongoDB"></textarea></div><div class="field"><label>Description</label><textarea id="job-description" class="input" rows="2"></textarea></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"><div class="field"><label>Type</label><select id="job-type" class="input"><option>Internship</option><option>Full-time</option><option>Part-time</option></select></div><div class="field"><label>Salary</label><input id="job-salary" type="text" class="input" placeholder="\u20B950,000/month"></div></div></div><div class="modal-foot"><button type="button" class="btn btn-outline" onclick="Modal.close()">Cancel</button><button type="button" class="btn btn-primary" onclick="App.postJob()">Post</button></div></div>';
 };
 
 Modal.templates.profileModal = function (id) {
   const c = State.candidates.filter(x => x.id === id)[0];
-  if (!c) return `<div class="modal modal-sm"><div class="modal-body">${UI.empty('Candidate not found')}</div></div>`;
-  const tags = c.skills.map(s => `<span class="tag">${UI.esc(s)}</span>`).join('');
-  return `<div class="modal modal-md">
-    <div class="modal-head"><h3 class="modal-title">Candidate Profile</h3><button type="button" class="modal-close" onclick="Modal.close()">×</button></div>
-    <div class="modal-body">
-      <div class="profile-head">
-        <div style="display:flex;justify-content:center;">${UI.avatar(c.initials, c.color, 'lg')}</div>
-        <div class="profile-name">${UI.esc(c.name)}</div>
-        <div class="profile-sub">${UI.esc(c.degree)} · ${UI.esc(c.institute)}</div>
-        <div class="profile-meta"><div class="match-badge">${c.match || 85}% Match</div>${UI.stars(c.rating)}</div>
-      </div>
-      <div class="profile-row"><span class="profile-row-label">Email</span><span class="profile-row-value">${UI.esc(c.email)}</span></div>
-      <div class="profile-row"><span class="profile-row-label">Experience</span><span class="profile-row-value">${UI.esc(c.experience)}</span></div>
-      <div class="profile-row"><span class="profile-row-label">Location</span><span class="profile-row-value">${UI.esc(c.location)}</span></div>
-      <div style="margin-top:18px;"><div class="profile-row-label" style="margin-bottom:10px;">Skills</div><div class="tag-row">${tags}</div></div>
-    </div>
-    <div class="modal-foot">
-      <button type="button" class="btn btn-outline" onclick="Modal.close()">Close</button>
-      <button type="button" class="btn btn-primary" onclick="App.shortlistCandidate(${c.id})">Shortlist</button>
-    </div>
-  </div>`;
+  if (!c) return '<div class="modal modal-sm"><div class="modal-body">' + UI.empty('Candidate not found') + '</div></div>';
+  const tags = c.skills.map(s => '<span class="tag">' + UI.esc(s) + '</span>').join('');
+  return '<div class="modal modal-md"><div class="modal-head"><h3 class="modal-title">Candidate Profile</h3><button type="button" class="modal-close" onclick="Modal.close()">\u00D7</button></div><div class="modal-body"><div class="profile-head"><div style="display:flex;justify-content:center;">' + UI.avatar(c.initials, c.color, 'lg') + '</div><div class="profile-name">' + UI.esc(c.name) + '</div><div class="profile-sub">' + UI.esc(c.degree) + ' \u00B7 ' + UI.esc(c.institute) + '</div><div class="profile-meta"><div class="match-badge">' + (c.match || 85) + '% Match</div>' + UI.stars(c.rating) + '</div></div><div class="profile-row"><span class="profile-row-label">Email</span><span class="profile-row-value">' + UI.esc(c.email) + '</span></div><div class="profile-row"><span class="profile-row-label">Experience</span><span class="profile-row-value">' + UI.esc(c.experience) + '</span></div><div class="profile-row"><span class="profile-row-label">Location</span><span class="profile-row-value">' + UI.esc(c.location) + '</span></div><div style="margin-top:18px;"><div class="profile-row-label" style="margin-bottom:10px;">Skills</div><div class="tag-row">' + tags + '</div></div></div><div class="modal-foot"><button type="button" class="btn btn-outline" onclick="Modal.close()">Close</button><button type="button" class="btn btn-primary" onclick="App.shortlistCandidate(' + c.id + ')">Shortlist</button></div></div>';
 };
 
 Modal.templates.compareModal = function () {
   const list = State.compareList.map(id => State.candidates.filter(x => x.id === id)[0]).filter(Boolean);
-  if (list.length < 2) return `<div class="modal modal-sm"><div class="modal-body">${UI.empty('Select at least 2')}</div></div>`;
+  if (list.length < 2) return '<div class="modal modal-sm"><div class="modal-body">' + UI.empty('Select at least 2') + '</div></div>';
   const bestMatch = Math.max.apply(null, list.map(c => c.match || 85));
   const bestRating = Math.max.apply(null, list.map(c => c.rating));
   const allSkills = {}; list.forEach(c => c.skills.forEach(s => allSkills[s] = true));
-  const headerCells = list.map(c => `<th><div style="text-align:center;">${UI.avatar(c.initials, c.color)}<div style="font-size:12px;font-weight:700;margin-top:6px;">${UI.esc(c.name)}</div></div></th>`).join('');
-  const rowMatch = list.map(c => `<td class="${(c.match || 85) === bestMatch ? 'compare-best' : ''}">${c.match || 85}%</td>`).join('');
-  const rowRating = list.map(c => `<td class="${c.rating === bestRating ? 'compare-best' : ''}">${UI.stars(c.rating)} ${c.rating}</td>`).join('');
+  const headerCells = list.map(c => '<th><div style="text-align:center;">' + UI.avatar(c.initials, c.color) + '<div style="font-size:12px;font-weight:700;margin-top:6px;">' + UI.esc(c.name) + '</div></div></th>').join('');
+  const rowMatch = list.map(c => '<td class="' + ((c.match || 85) === bestMatch ? 'compare-best' : '') + '">' + (c.match || 85) + '%</td>').join('');
+  const rowRating = list.map(c => '<td class="' + (c.rating === bestRating ? 'compare-best' : '') + '">' + UI.stars(c.rating) + ' ' + c.rating + '</td>').join('');
   const skillRows = Object.keys(allSkills).map(s => {
-    const cells = list.map(c => `<td style="${c.skills.indexOf(s) > -1 ? 'color:#047857;font-weight:700;' : 'color:var(--slate-300);'}">${c.skills.indexOf(s) > -1 ? '✓' : '—'}</td>`).join('');
-    return `<tr><td><strong>${UI.esc(s)}</strong></td>${cells}</tr>`;
+    const cells = list.map(c => '<td style="' + (c.skills.indexOf(s) > -1 ? 'color:#047857;font-weight:700;' : 'color:var(--slate-300);') + '">' + (c.skills.indexOf(s) > -1 ? '\u2713' : '\u2014') + '</td>').join('');
+    return '<tr><td><strong>' + UI.esc(s) + '</strong></td>' + cells + '</tr>';
   }).join('');
-  return `<div class="modal modal-xl">
-    <div class="modal-head"><h3 class="modal-title">⚖️ Compare</h3><button type="button" class="modal-close" onclick="Modal.close()">×</button></div>
-    <div class="modal-body"><div class="scroll-thin" style="overflow-x:auto;">
-      <table class="compare-table">
-        <thead><tr><th>Attribute</th>${headerCells}</tr></thead>
-        <tbody>
-          <tr><td><strong>Match</strong></td>${rowMatch}</tr>
-          <tr><td><strong>Rating</strong></td>${rowRating}</tr>
-          <tr><td><strong>Experience</strong></td>${list.map(c => `<td>${UI.esc(c.experience)}</td>`).join('')}</tr>
-          <tr><td><strong>Location</strong></td>${list.map(c => `<td>${UI.esc(c.location)}</td>`).join('')}</tr>
-          ${skillRows}
-        </tbody>
-      </table>
-    </div></div>
-    <div class="modal-foot">
-      <button type="button" class="btn btn-outline" onclick="Modal.close()">Close</button>
-      <button type="button" class="btn btn-primary" onclick="Compare.clear(); Modal.close();">Clear</button>
-    </div>
-  </div>`;
+  return '<div class="modal modal-xl"><div class="modal-head"><h3 class="modal-title">\u2696\uFE0F Compare</h3><button type="button" class="modal-close" onclick="Modal.close()">\u00D7</button></div><div class="modal-body"><div class="scroll-thin" style="overflow-x:auto;"><table class="compare-table"><thead><tr><th>Attribute</th>' + headerCells + '</tr></thead><tbody><tr><td><strong>Match</strong></td>' + rowMatch + '</tr><tr><td><strong>Rating</strong></td>' + rowRating + '</tr><tr><td><strong>Experience</strong></td>' + list.map(c => '<td>' + UI.esc(c.experience) + '</td>').join('') + '</tr><tr><td><strong>Location</strong></td>' + list.map(c => '<td>' + UI.esc(c.location) + '</td>').join('') + '</tr>' + skillRows + '</tbody></table></div></div><div class="modal-foot"><button type="button" class="btn btn-outline" onclick="Modal.close()">Close</button><button type="button" class="btn btn-primary" onclick="Compare.clear(); Modal.close();">Clear</button></div></div>';
 };
 
 Modal.templates.matchesModal = function () {
   const list = AI.rankJobs(State.skills, State.internships);
-  const body = !list.length ? UI.empty('No matches found', '✨') :
-    `<div class="scroll-thin" style="max-height:500px;overflow-y:auto;">${list.map(job => {
+  const body = !list.length ? UI.empty('No matches found', '\u2728') :
+    '<div class="scroll-thin" style="max-height:500px;overflow-y:auto;">' + list.map(job => {
       const id = job._id || job.id;
       const typeClass = job.type === 'Internship' ? 'internship' : 'fulltime';
       const tags = job.skills.map(s => {
         const matched = State.skills.some(sk => sk.name.toLowerCase().indexOf(s.toLowerCase()) > -1 || s.toLowerCase().indexOf(sk.name.toLowerCase()) > -1);
-        return `<span class="tag ${matched ? 'matched' : ''}">${matched ? '✓ ' : ''}${UI.esc(s)}</span>`;
+        return '<span class="tag ' + (matched ? 'matched' : '') + '">' + (matched ? '\u2713 ' : '') + UI.esc(s) + '</span>';
       }).join('');
-      return `<div class="list-item" style="padding:16px 18px;">
-        <div class="item-row">
-          <div class="item-main">
-            <div class="item-title-row"><span class="item-title">${UI.esc(job.title)}</span>${job.match >= 90 ? '<span class="top-match-tag">Top Match</span>' : ''}<span class="item-type ${typeClass}">${job.type}</span></div>
-            <div class="item-meta">${UI.esc(job.company)} · ${UI.esc(job.location)} · ${UI.esc(job.salary)}</div>
-            <div class="tag-row">${tags}</div>
-          </div>
-          <div class="item-side">
-            <div class="match-badge">${job.match}%</div>
-            <button type="button" class="apply-link" onclick="Modal.close(); App.applyJob('${id}')">Apply →</button>
-          </div>
-        </div>
-      </div>`;
-    }).join('')}</div>`;
-  return `<div class="modal modal-xl">
-    <div class="modal-head"><h3 class="modal-title">✨ AI Matched Internships (${list.length})</h3><button type="button" class="modal-close" onclick="Modal.close()">×</button></div>
-    <div class="modal-body" style="padding:0;">${body}</div>
-    <div class="modal-foot">
-      <button type="button" class="btn btn-outline" onclick="Modal.close()">Close</button>
-      <button type="button" class="btn btn-primary" onclick="Modal.close(); App.switchView('student');">Go to Internships</button>
-    </div>
-  </div>`;
+      return '<div class="list-item" style="padding:16px 18px;"><div class="item-row"><div class="item-main"><div class="item-title-row"><span class="item-title">' + UI.esc(job.title) + '</span>' + (job.match >= 90 ? '<span class="top-match-tag">Top Match</span>' : '') + '<span class="item-type ' + typeClass + '">' + job.type + '</span></div><div class="item-meta">' + UI.esc(job.company) + ' \u00B7 ' + UI.esc(job.location) + ' \u00B7 ' + UI.esc(job.salary) + '</div><div class="tag-row">' + tags + '</div></div><div class="item-side"><div class="match-badge">' + job.match + '%</div><button type="button" class="apply-link" onclick="Modal.close(); App.applyJob(\'' + id + '\')">Apply \u2192</button></div></div></div>';
+    }).join('') + '</div>';
+  return '<div class="modal modal-xl"><div class="modal-head"><h3 class="modal-title">\u2728 AI Matched Internships (' + list.length + ')</h3><button type="button" class="modal-close" onclick="Modal.close()">\u00D7</button></div><div class="modal-body" style="padding:0;">' + body + '</div><div class="modal-foot"><button type="button" class="btn btn-outline" onclick="Modal.close()">Close</button><button type="button" class="btn btn-primary" onclick="Modal.close(); App.switchView(\'student\');">Go to Internships</button></div></div>';
 };
 
 Modal.templates.applicationsModal = function () {
-  const body = !State.applications.length ? UI.empty('No applications yet', '📋') :
-    `<table class="table"><thead><tr><th>Position</th><th>Company</th><th>Date</th><th>Status</th></tr></thead><tbody>${State.applications.map(a => `
-      <tr><td><strong>${UI.esc(a.position)}</strong></td><td>${UI.esc(a.company)}</td><td style="color:var(--slate-500);font-size:12px;">${UI.fmtDate(a.date)}</td><td>${UI.statusBadge(a.statusType, a.status)}</td></tr>`).join('')}</tbody></table>`;
-  return `<div class="modal modal-xl">
-    <div class="modal-head"><h3 class="modal-title">📋 All Applications (${State.applications.length})</h3><button type="button" class="modal-close" onclick="Modal.close()">×</button></div>
-    <div class="modal-body" style="padding:0;">${body}</div>
-    <div class="modal-foot"><button type="button" class="btn btn-primary" onclick="Modal.close()">Close</button></div>
-  </div>`;
+  const body = !State.applications.length ? UI.empty('No applications yet', '\uD83D\uDCCB') :
+    '<table class="table"><thead><tr><th>Position</th><th>Company</th><th>Date</th><th>Status</th></tr></thead><tbody>' + State.applications.map(a => '<tr><td><strong>' + UI.esc(a.position) + '</strong></td><td>' + UI.esc(a.company) + '</td><td style="color:var(--slate-500);font-size:12px;">' + UI.fmtDate(a.date) + '</td><td>' + UI.statusBadge(a.statusType, a.status) + '</td></tr>').join('') + '</tbody></table>';
+  return '<div class="modal modal-xl"><div class="modal-head"><h3 class="modal-title">\uD83D\uDCCB All Applications (' + State.applications.length + ')</h3><button type="button" class="modal-close" onclick="Modal.close()">\u00D7</button></div><div class="modal-body" style="padding:0;">' + body + '</div><div class="modal-foot"><button type="button" class="btn btn-primary" onclick="Modal.close()">Close</button></div></div>';
 };
 
 Modal.templates.viewsModal = function () {
   const count = State.profileViewsCount || 35;
   const viewers = State.profileViewers || [];
-  let body = `<div style="padding:16px 22px;border-bottom:1px solid var(--slate-100);"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:12px;color:var(--slate-500);font-weight:600;text-transform:uppercase;letter-spacing:.06em;">Total Views</span><span style="font-size:20px;font-weight:800;color:var(--purple-500);">${count}</span></div></div>`;
+  let body = '<div style="padding:16px 22px;border-bottom:1px solid var(--slate-100);"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:12px;color:var(--slate-500);font-weight:600;text-transform:uppercase;letter-spacing:.06em;">Total Views</span><span style="font-size:20px;font-weight:800;color:var(--purple-500);">' + count + '</span></div></div>';
   body += '<div class="scroll-thin" style="max-height:500px;overflow-y:auto;">';
-  if (!viewers.length) body += UI.empty('No recent viewers', '👁');
-  else body += viewers.map((v, i) => `<div class="list-item" style="padding:14px 18px;"><div class="item-row" style="align-items:center;"><div class="avatar-row"><div style="font-size:11px;font-weight:800;color:var(--slate-400);width:28px;text-align:center;flex-shrink:0;">#${i + 1}</div>${UI.avatar(v.initials, v.color)}<div><div class="item-title">${UI.esc(v.name)}</div><div class="item-meta" style="margin:0;">${UI.esc(v.role)} · ${UI.fmtDate(v.time)}</div></div></div><div class="item-side"><button type="button" class="apply-link" onclick="Toast.show('Request sent to ${UI.esc(v.name)}','success')">Connect →</button></div></div></div>`).join('');
+  if (!viewers.length) body += UI.empty('No recent viewers', '\uD83D\uDC41');
+  else body += viewers.map((v, i) => '<div class="list-item" style="padding:14px 18px;"><div class="item-row" style="align-items:center;"><div class="avatar-row"><div style="font-size:11px;font-weight:800;color:var(--slate-400);width:28px;text-align:center;flex-shrink:0;">#' + (i + 1) + '</div>' + UI.avatar(v.initials, v.color) + '<div><div class="item-title">' + UI.esc(v.name) + '</div><div class="item-meta" style="margin:0;">' + UI.esc(v.role) + ' \u00B7 ' + UI.fmtDate(v.time) + '</div></div></div><div class="item-side"><button type="button" class="apply-link" onclick="Toast.show(\'Request sent to ' + UI.esc(v.name) + '\',\'success\')">Connect \u2192</button></div></div></div>').join('');
   body += '</div>';
-  return `<div class="modal modal-lg">
-    <div class="modal-head"><h3 class="modal-title">👁 Profile Views (${count})</h3><button type="button" class="modal-close" onclick="Modal.close()">×</button></div>
-    <div class="modal-body" style="padding:0;">${body}</div>
-    <div class="modal-foot"><button type="button" class="btn btn-primary" onclick="Modal.close()">Close</button></div>
-  </div>`;
+  return '<div class="modal modal-lg"><div class="modal-head"><h3 class="modal-title">\uD83D\uDC41 Profile Views (' + count + ')</h3><button type="button" class="modal-close" onclick="Modal.close()">\u00D7</button></div><div class="modal-body" style="padding:0;">' + body + '</div><div class="modal-foot"><button type="button" class="btn btn-primary" onclick="Modal.close()">Close</button></div></div>';
 };
 
 Modal.templates.skillScoreModal = function () {
@@ -857,44 +584,20 @@ Modal.templates.skillScoreModal = function () {
   const catHtml = Object.keys(byCat).map(cat => {
     const skills = byCat[cat];
     const catAvg = Math.round(skills.reduce((a, s) => a + s.level, 0) / skills.length);
-    return `<div style="margin-bottom:18px;"><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;font-weight:700;color:var(--slate-800);">${UI.esc(cat)}</span><span style="font-size:12px;font-weight:700;color:var(--cse-700);">${catAvg}%</span></div>${UI.progress(catAvg)}<div style="margin-top:8px;font-size:12px;color:var(--slate-500);">${skills.map(s => UI.esc(s.name) + ' (' + s.level + '%)').join(' · ')}</div></div>`;
+    return '<div style="margin-bottom:18px;"><div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span style="font-size:13px;font-weight:700;color:var(--slate-800);">' + UI.esc(cat) + '</span><span style="font-size:12px;font-weight:700;color:var(--cse-700);">' + catAvg + '%</span></div>' + UI.progress(catAvg) + '<div style="margin-top:8px;font-size:12px;color:var(--slate-500);">' + skills.map(s => UI.esc(s.name) + ' (' + s.level + '%)').join(' \u00B7 ') + '</div></div>';
   }).join('');
-  return `<div class="modal modal-md">
-    <div class="modal-head"><h3 class="modal-title">⭐ Skill Score Breakdown</h3><button type="button" class="modal-close" onclick="Modal.close()">×</button></div>
-    <div class="modal-body">
-      <div style="text-align:center;padding:16px 0 24px;"><div style="font-size:56px;font-weight:900;color:var(--cse-700);line-height:1;">${grade}</div><div style="font-size:14px;color:var(--slate-500);margin-top:6px;">Average: ${avg}% across ${State.skills.length} skills</div></div>
-      ${catHtml || UI.empty('No skills yet', '⭐')}
-    </div>
-    <div class="modal-foot">
-      <button type="button" class="btn btn-outline" onclick="Modal.close(); Modal.open('skillModal');">+ Add Skill</button>
-      <button type="button" class="btn btn-primary" onclick="Modal.close()">Close</button>
-    </div>
-  </div>`;
+  return '<div class="modal modal-md"><div class="modal-head"><h3 class="modal-title">\u2B50 Skill Score Breakdown</h3><button type="button" class="modal-close" onclick="Modal.close()">\u00D7</button></div><div class="modal-body"><div style="text-align:center;padding:16px 0 24px;"><div style="font-size:56px;font-weight:900;color:var(--cse-700);line-height:1;">' + grade + '</div><div style="font-size:14px;color:var(--slate-500);margin-top:6px;">Average: ' + avg + '% across ' + State.skills.length + ' skills</div></div>' + (catHtml || UI.empty('No skills yet', '\u2B50')) + '</div><div class="modal-foot"><button type="button" class="btn btn-outline" onclick="Modal.close(); Modal.open(\'skillModal\');">+ Add Skill</button><button type="button" class="btn btn-primary" onclick="Modal.close()">Close</button></div></div>';
 };
 
 Modal.templates.topMatchModal = function () {
   const list = AI.rankJobs(State.skills, State.internships);
   const job = list[0];
-  if (!job) return `<div class="modal modal-sm"><div class="modal-body">${UI.empty('No matches yet', '🎯')}</div></div>`;
+  if (!job) return '<div class="modal modal-sm"><div class="modal-body">' + UI.empty('No matches yet', '\uD83C\uDFAF') + '</div></div>';
   const id = job._id || job.id;
   const typeClass = job.type === 'Internship' ? 'internship' : 'fulltime';
   const matchedSkills = job.skills.filter(s => State.skills.some(sk => sk.name.toLowerCase().indexOf(s.toLowerCase()) > -1 || s.toLowerCase().indexOf(sk.name.toLowerCase()) > -1));
   const missingSkills = job.skills.filter(s => !State.skills.some(sk => sk.name.toLowerCase().indexOf(s.toLowerCase()) > -1 || s.toLowerCase().indexOf(sk.name.toLowerCase()) > -1));
-  return `<div class="modal modal-lg">
-    <div class="modal-head"><h3 class="modal-title">🎯 Your Top Match</h3><button type="button" class="modal-close" onclick="Modal.close()">×</button></div>
-    <div class="modal-body">
-      <div style="text-align:center;padding:8px 0 20px;"><div class="match-badge" style="font-size:18px;padding:10px 24px;">${job.match}% Match</div></div>
-      <div class="item-title-row" style="margin-bottom:6px;"><span style="font-size:18px;font-weight:800;color:var(--slate-900);">${UI.esc(job.title)}</span><span class="item-type ${typeClass}">${job.type}</span></div>
-      <div class="item-meta" style="margin-bottom:14px;">${UI.esc(job.company)} · ${UI.esc(job.location)} · ${UI.esc(job.salary)}</div>
-      <div class="item-desc" style="font-size:13px;line-height:1.6;margin-bottom:18px;">${UI.esc(job.description)}</div>
-      ${matchedSkills.length ? `<div style="margin-bottom:14px;"><div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#047857;margin-bottom:8px;">✓ Skills you have (${matchedSkills.length})</div><div class="tag-row">${matchedSkills.map(s => `<span class="tag matched">✓ ${UI.esc(s)}</span>`).join('')}</div></div>` : ''}
-      ${missingSkills.length ? `<div><div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--amber-600);margin-bottom:8px;">⚠ Skills to develop (${missingSkills.length})</div><div class="tag-row">${missingSkills.map(s => `<span class="tag">${UI.esc(s)}</span>`).join('')}</div></div>` : ''}
-    </div>
-    <div class="modal-foot">
-      <button type="button" class="btn btn-outline" onclick="Modal.close()">Close</button>
-      <button type="button" class="btn btn-primary" onclick="Modal.close(); App.applyJob('${id}')">Apply Now →</button>
-    </div>
-  </div>`;
+  return '<div class="modal modal-lg"><div class="modal-head"><h3 class="modal-title">\uD83C\uDFAF Your Top Match</h3><button type="button" class="modal-close" onclick="Modal.close()">\u00D7</button></div><div class="modal-body"><div style="text-align:center;padding:8px 0 20px;"><div class="match-badge" style="font-size:18px;padding:10px 24px;">' + job.match + '% Match</div></div><div class="item-title-row" style="margin-bottom:6px;"><span style="font-size:18px;font-weight:800;color:var(--slate-900);">' + UI.esc(job.title) + '</span><span class="item-type ' + typeClass + '">' + job.type + '</span></div><div class="item-meta" style="margin-bottom:14px;">' + UI.esc(job.company) + ' \u00B7 ' + UI.esc(job.location) + ' \u00B7 ' + UI.esc(job.salary) + '</div><div class="item-desc" style="font-size:13px;line-height:1.6;margin-bottom:18px;">' + UI.esc(job.description) + '</div>' + (matchedSkills.length ? '<div style="margin-bottom:14px;"><div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#047857;margin-bottom:8px;">\u2713 Skills you have (' + matchedSkills.length + ')</div><div class="tag-row">' + matchedSkills.map(s => '<span class="tag matched">\u2713 ' + UI.esc(s) + '</span>').join('') + '</div></div>' : '') + (missingSkills.length ? '<div><div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--amber-600);margin-bottom:8px;">\u26A0 Skills to develop (' + missingSkills.length + ')</div><div class="tag-row">' + missingSkills.map(s => '<span class="tag">' + UI.esc(s) + '</span>').join('') + '</div></div>' : '') + '</div><div class="modal-foot"><button type="button" class="btn btn-outline" onclick="Modal.close()">Close</button><button type="button" class="btn btn-primary" onclick="Modal.close(); App.applyJob(\'' + id + '\')">Apply Now \u2192</button></div></div>';
 };
 
 Modal.templates.averageMatchModal = function () {
@@ -910,16 +613,9 @@ Modal.templates.averageMatchModal = function () {
   const avg = list.length ? Math.round(list.reduce((a, j) => a + j.match, 0) / list.length) : 0;
   const bars = Object.keys(ranges).map(k => {
     const count = ranges[k], pct = list.length ? Math.round((count / list.length) * 100) : 0;
-    return `<div style="margin-bottom:14px;"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;"><span style="font-weight:600;color:var(--slate-700);">${k}</span><span style="font-weight:700;color:var(--slate-800);">${count} (${pct}%)</span></div>${UI.progress(pct)}</div>`;
+    return '<div style="margin-bottom:14px;"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;"><span style="font-weight:600;color:var(--slate-700);">' + k + '</span><span style="font-weight:700;color:var(--slate-800);">' + count + ' (' + pct + '%)</span></div>' + UI.progress(pct) + '</div>';
   }).join('');
-  return `<div class="modal modal-md">
-    <div class="modal-head"><h3 class="modal-title">📈 Match Analysis</h3><button type="button" class="modal-close" onclick="Modal.close()">×</button></div>
-    <div class="modal-body">
-      <div style="text-align:center;padding:8px 0 24px;"><div style="font-size:56px;font-weight:900;color:var(--accent-600);line-height:1;">${avg}%</div><div style="font-size:14px;color:var(--slate-500);margin-top:6px;">Average across ${list.length} opportunities</div></div>
-      <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--slate-500);margin-bottom:12px;">Distribution</div>${bars}
-    </div>
-    <div class="modal-foot"><button type="button" class="btn btn-primary" onclick="Modal.close()">Close</button></div>
-  </div>`;
+  return '<div class="modal modal-md"><div class="modal-head"><h3 class="modal-title">\uD83D\uDCC8 Match Analysis</h3><button type="button" class="modal-close" onclick="Modal.close()">\u00D7</button></div><div class="modal-body"><div style="text-align:center;padding:8px 0 24px;"><div style="font-size:56px;font-weight:900;color:var(--accent-600);line-height:1;">' + avg + '%</div><div style="font-size:14px;color:var(--slate-500);margin-top:6px;">Average across ' + list.length + ' opportunities</div></div><div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--slate-500);margin-bottom:12px;">Distribution</div>' + bars + '</div><div class="modal-foot"><button type="button" class="btn btn-primary" onclick="Modal.close()">Close</button></div></div>';
 };
 
 Modal.templates.strongSkillsModal = function () {
@@ -928,61 +624,37 @@ Modal.templates.strongSkillsModal = function () {
   const weak = State.skills.filter(s => s.level < 70);
   const section = (title, color, list, icon) => {
     if (!list.length) return '';
-    return `<div style="margin-bottom:20px;"><div style="font-size:11px;font-weight:700;text-transform:uppercase;color:${color};margin-bottom:10px;">${icon} ${title} (${list.length})</div>${list.map(s => `<div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px;"><span style="font-weight:600;color:var(--slate-800);">${UI.esc(s.name)}</span><span style="font-weight:700;color:var(--slate-600);">${s.level}%</span></div>${UI.progress(s.level)}<div style="font-size:10px;color:var(--slate-400);margin-top:4px;text-transform:uppercase;">${UI.esc(s.category)}</div></div>`).join('')}</div>`;
+    return '<div style="margin-bottom:20px;"><div style="font-size:11px;font-weight:700;text-transform:uppercase;color:' + color + ';margin-bottom:10px;">' + icon + ' ' + title + ' (' + list.length + ')</div>' + list.map(s => '<div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px;"><span style="font-weight:600;color:var(--slate-800);">' + UI.esc(s.name) + '</span><span style="font-weight:700;color:var(--slate-600);">' + s.level + '%</span></div>' + UI.progress(s.level) + '<div style="font-size:10px;color:var(--slate-400);margin-top:4px;text-transform:uppercase;">' + UI.esc(s.category) + '</div></div>').join('') + '</div>';
   };
   const i = AI.insights();
-  const body = section('Strong Skills', '#059669', strong, '💪') + section('Intermediate Skills', '#d97706', medium, '📊') + section('Needs Improvement', '#dc2626', weak, '🎯');
-  return `<div class="modal modal-md">
-    <div class="modal-head"><h3 class="modal-title">💪 Skill Strength Breakdown</h3><button type="button" class="modal-close" onclick="Modal.close()">×</button></div>
-    <div class="modal-body">
-      ${i.weakCount > 0 ? `<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:14px;font-size:12px;color:#b45309;margin-bottom:18px;line-height:1.55;">💡 <strong>Tip:</strong> Focus on improving <strong>${UI.esc(i.recommendedSkill)}</strong></div>` : ''}
-      ${body || UI.empty('No skills yet', '💪')}
-    </div>
-    <div class="modal-foot">
-      <button type="button" class="btn btn-outline" onclick="Modal.close(); Modal.open('skillModal');">+ Add Skill</button>
-      <button type="button" class="btn btn-primary" onclick="Modal.close()">Close</button>
-    </div>
-  </div>`;
+  const body = section('Strong Skills', '#059669', strong, '\uD83D\uDCAA') + section('Intermediate Skills', '#d97706', medium, '\uD83D\uDCCA') + section('Needs Improvement', '#dc2626', weak, '\uD83C\uDFAF');
+  return '<div class="modal modal-md"><div class="modal-head"><h3 class="modal-title">\uD83D\uDCAA Skill Strength Breakdown</h3><button type="button" class="modal-close" onclick="Modal.close()">\u00D7</button></div><div class="modal-body">' + (i.weakCount > 0 ? '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:14px;font-size:12px;color:#b45309;margin-bottom:18px;line-height:1.55;">\uD83D\uDCA1 <strong>Tip:</strong> Focus on improving <strong>' + UI.esc(i.recommendedSkill) + '</strong></div>' : '') + (body || UI.empty('No skills yet', '\uD83D\uDCAA')) + '</div><div class="modal-foot"><button type="button" class="btn btn-outline" onclick="Modal.close(); Modal.open(\'skillModal\');">+ Add Skill</button><button type="button" class="btn btn-primary" onclick="Modal.close()">Close</button></div></div>';
 };
 
 Modal.templates.notificationsModal = function () {
-  const icons = { match: '✨', view: '👁', success: '✅', info: 'ℹ', warning: '⚠' };
+  const icons = { match: '\u2728', view: '\uD83D\uDC41', success: '\u2705', info: '\u2139', warning: '\u26A0' };
   const filters = [{ id: 'all', label: 'All' }, { id: 'unread', label: 'Unread' }, { id: 'match', label: 'Matches' }, { id: 'info', label: 'Info' }];
   let list = State.notifications;
   if (State.notifFilter === 'unread') list = list.filter(n => !n.read);
   else if (State.notifFilter !== 'all') list = list.filter(n => n.type === State.notifFilter);
-  const filterBtns = filters.map(f => `<button type="button" class="notif-filter-btn ${State.notifFilter === f.id ? 'active' : ''}" onclick="App.setNotifFilter('${f.id}')">${f.label}</button>`).join('');
-  const body = !list.length ? UI.empty('No notifications', '🔕') :
-    `<div class="scroll-thin" style="max-height:400px;overflow-y:auto;">${list.map(n => {
+  const filterBtns = filters.map(f => '<button type="button" class="notif-filter-btn ' + (State.notifFilter === f.id ? 'active' : '') + '" onclick="App.setNotifFilter(\'' + f.id + '\')">' + f.label + '</button>').join('');
+  const body = !list.length ? UI.empty('No notifications', '\uD83D\uDD15') :
+    '<div class="scroll-thin" style="max-height:400px;overflow-y:auto;">' + list.map(n => {
       const id = n._id || n.id;
-      return `<div class="notif-item ${n.read ? 'read' : 'unread'}" onclick="App.markNotifRead('${id}')"><span class="notif-icon">${icons[n.type] || 'ℹ'}</span><div style="flex:1;min-width:0;"><div class="notif-text">${UI.esc(n.text)}</div><div class="notif-time">${UI.fmtDate(n.time)}</div></div>${!n.read ? '<span class="notif-dot"></span>' : ''}</div>`;
-    }).join('')}</div>`;
-  return `<div class="modal modal-md">
-    <div class="modal-head"><h3 class="modal-title">🔔 Notifications</h3><button type="button" class="modal-close" onclick="Modal.close()">×</button></div>
-    <div class="modal-body"><div class="notif-filter">${filterBtns}</div>${body}</div>
-    <div class="modal-foot">
-      <button type="button" class="btn btn-outline" onclick="App.markAllRead()">Mark all read</button>
-      <button type="button" class="btn btn-primary" onclick="Modal.close()">Close</button>
-    </div>
-  </div>`;
+      return '<div class="notif-item ' + (n.read ? 'read' : 'unread') + '" onclick="App.markNotifRead(\'' + id + '\')"><span class="notif-icon">' + (icons[n.type] || '\u2139') + '</span><div style="flex:1;min-width:0;"><div class="notif-text">' + UI.esc(n.text) + '</div><div class="notif-time">' + UI.fmtDate(n.time) + '</div></div>' + (!n.read ? '<span class="notif-dot"></span>' : '') + '</div>';
+    }).join('') + '</div>';
+  return '<div class="modal modal-md"><div class="modal-head"><h3 class="modal-title">\uD83D\uDD14 Notifications</h3><button type="button" class="modal-close" onclick="Modal.close()">\u00D7</button></div><div class="modal-body"><div class="notif-filter">' + filterBtns + '</div>' + body + '</div><div class="modal-foot"><button type="button" class="btn btn-outline" onclick="App.markAllRead()">Mark all read</button><button type="button" class="btn btn-primary" onclick="Modal.close()">Close</button></div></div>';
 };
 
 Modal.templates.docVaultModal = function () {
-  const icons = { pdf: '📄', doc: '📝', img: '🖼️', cert: '🎓' };
+  const icons = { pdf: '\uD83D\uDCC4', doc: '\uD83D\uDCDD', img: '\uD83D\uDDBC\uFE0F', cert: '\uD83C\uDF93' };
   const list = State.documents;
-  const body = !list.length ? UI.empty('No documents', '📁') :
+  const body = !list.length ? UI.empty('No documents', '\uD83D\uDCC1') :
     list.map(d => {
       const id = d._id || d.id;
-      return `<div class="doc-item"><div class="doc-icon ${d.type}">${icons[d.type] || '📄'}</div><div class="doc-info"><div class="doc-name">${UI.esc(d.name)}</div><div class="doc-meta">${UI.esc(d.size)} · Uploaded ${UI.fmtDate(d.uploaded)}</div></div><button type="button" class="btn btn-ghost btn-xs" onclick="Toast.show('Downloading','info')">⬇</button><button type="button" class="btn btn-ghost btn-xs" onclick="App.deleteDoc('${id}')">🗑</button></div>`;
+      return '<div class="doc-item"><div class="doc-icon ' + d.type + '">' + (icons[d.type] || '\uD83D\uDCC4') + '</div><div class="doc-info"><div class="doc-name">' + UI.esc(d.name) + '</div><div class="doc-meta">' + UI.esc(d.size) + ' \u00B7 Uploaded ' + UI.fmtDate(d.uploaded) + '</div></div><button type="button" class="btn btn-ghost btn-xs" onclick="Toast.show(\'Downloading\',\'info\')">\u2B07</button><button type="button" class="btn btn-ghost btn-xs" onclick="App.deleteDoc(\'' + id + '\')">\uD83D\uDDD1</button></div>';
     }).join('');
-  return `<div class="modal modal-lg">
-    <div class="modal-head"><h3 class="modal-title">📁 Document Vault</h3><button type="button" class="modal-close" onclick="Modal.close()">×</button></div>
-    <div class="modal-body">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;"><p style="font-size:13px;color:var(--slate-500);">Store documents securely.</p><button type="button" class="btn btn-primary btn-sm" onclick="App.addFakeDoc()">+ Add</button></div>
-      ${body}
-    </div>
-    <div class="modal-foot"><button type="button" class="btn btn-primary" onclick="Modal.close()">Done</button></div>
-  </div>`;
+  return '<div class="modal modal-lg"><div class="modal-head"><h3 class="modal-title">\uD83D\uDCC1 Document Vault</h3><button type="button" class="modal-close" onclick="Modal.close()">\u00D7</button></div><div class="modal-body"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;"><p style="font-size:13px;color:var(--slate-500);">Store documents securely.</p><button type="button" class="btn btn-primary btn-sm" onclick="App.addFakeDoc()">+ Add</button></div>' + body + '</div><div class="modal-foot"><button type="button" class="btn btn-primary" onclick="Modal.close()">Done</button></div></div>';
 };
 
 Modal.templates.interviewModal = function () {
@@ -1000,149 +672,65 @@ Modal.templates.interviewModal = function () {
     const hasEvent = eventDays.indexOf(d) > -1;
     const isSelected = d === State.interviewSelectedDay;
     const cls = 'cal-day' + (isToday ? ' today' : '') + (hasEvent ? ' event' : '') + (isSelected ? ' selected' : '');
-    calDays += `<div class="${cls}" data-day="${d}" onclick="App.pickDay(${d})">${d}</div>`;
+    calDays += '<div class="' + cls + '" data-day="' + d + '" onclick="App.pickDay(' + d + ')">' + d + '</div>';
   }
   const interviewsHtml = State.interviews.length ? State.interviews.map(iv => {
     const id = iv._id || iv.id;
-    return `<div class="doc-item"><div class="doc-icon cert">📅</div><div class="doc-info"><div class="doc-name">${UI.esc(iv.title)}</div><div class="doc-meta">${UI.esc(iv.company)} · ${UI.esc(iv.date)} at ${UI.esc(iv.time)} · ${UI.esc(iv.type)}</div></div><button type="button" class="btn btn-ghost btn-xs" onclick="App.cancelInterview('${id}')">🗑</button></div>`;
-  }).join('') : UI.empty('No interviews scheduled', '📅');
+    return '<div class="doc-item"><div class="doc-icon cert">\uD83D\uDCC5</div><div class="doc-info"><div class="doc-name">' + UI.esc(iv.title) + '</div><div class="doc-meta">' + UI.esc(iv.company) + ' \u00B7 ' + UI.esc(iv.date) + ' at ' + UI.esc(iv.time) + ' \u00B7 ' + UI.esc(iv.type) + '</div></div><button type="button" class="btn btn-ghost btn-xs" onclick="App.cancelInterview(\'' + id + '\')">\uD83D\uDDD1</button></div>';
+  }).join('') : UI.empty('No interviews scheduled', '\uD83D\uDCC5');
   const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-  const daysHeader = days.map(d => `<div style="text-align:center;font-size:11px;font-weight:700;color:var(--slate-500);padding:4px;">${d}</div>`).join('');
-  const infoText = State.interviewSelectedDay ? `Selected: ${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(State.interviewSelectedDay).padStart(2, '0')}` : 'Select a day to schedule an interview';
-  return `<div class="modal modal-lg">
-    <div class="modal-head"><h3 class="modal-title">📅 Interview Scheduler — ${monthNames[currentMonth]} ${currentYear}</h3><button type="button" class="modal-close" onclick="Modal.close()">×</button></div>
-    <div class="modal-body">
-      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:12px;">${daysHeader}</div>
-      <div class="cal-grid" id="interview-cal-grid">${calDays}</div>
-      <div id="interview-selection-info" style="margin-top:12px;font-size:13px;color:var(--slate-600);">${infoText}</div>
-      <div style="margin-top:16px;"><div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--slate-500);margin-bottom:10px;">Upcoming Interviews</div>${interviewsHtml}</div>
-    </div>
-    <div class="modal-foot">
-      <button type="button" class="btn btn-outline" onclick="Modal.close()">Cancel</button>
-      <button type="button" class="btn btn-primary" onclick="App.scheduleInterview()">Schedule</button>
-    </div>
-  </div>`;
+  const daysHeader = days.map(d => '<div style="text-align:center;font-size:11px;font-weight:700;color:var(--slate-500);padding:4px;">' + d + '</div>').join('');
+  const infoText = State.interviewSelectedDay ? 'Selected: ' + currentYear + '-' + String(currentMonth + 1).padStart(2, '0') + '-' + String(State.interviewSelectedDay).padStart(2, '0') : 'Select a day to schedule an interview';
+  return '<div class="modal modal-lg"><div class="modal-head"><h3 class="modal-title">\uD83D\uDCC5 Interview Scheduler \u2014 ' + monthNames[currentMonth] + ' ' + currentYear + '</h3><button type="button" class="modal-close" onclick="Modal.close()">\u00D7</button></div><div class="modal-body"><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:12px;">' + daysHeader + '</div><div class="cal-grid" id="interview-cal-grid">' + calDays + '</div><div id="interview-selection-info" style="margin-top:12px;font-size:13px;color:var(--slate-600);">' + infoText + '</div><div style="margin-top:16px;"><div style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--slate-500);margin-bottom:10px;">Upcoming Interviews</div>' + interviewsHtml + '</div></div><div class="modal-foot"><button type="button" class="btn btn-outline" onclick="Modal.close()">Cancel</button><button type="button" class="btn btn-primary" onclick="App.scheduleInterview()">Schedule</button></div></div>';
 };
 
 Modal.templates.shortcutsModal = function () {
   const shortcuts = [
-    { keys: ['⌘', 'K'], label: 'Global Search' }, { keys: ['?'], label: 'Shortcuts' },
+    { keys: ['\u2318', 'K'], label: 'Global Search' }, { keys: ['?'], label: 'Shortcuts' },
     { keys: ['Esc'], label: 'Close modal' }, { keys: ['D'], label: 'Toggle Dark Mode' },
     { keys: ['T'], label: 'Tour' }, { keys: ['U'], label: 'Upload Resume' }, { keys: ['N'], label: 'Notifications' },
   ];
-  return `<div class="modal modal-md">
-    <div class="modal-head"><h3 class="modal-title">⌨️ Keyboard Shortcuts</h3><button type="button" class="modal-close" onclick="Modal.close()">×</button></div>
-    <div class="modal-body">${shortcuts.map(s => `<div class="shortcut-item"><span class="shortcut-label">${UI.esc(s.label)}</span><span class="shortcut-keys">${s.keys.map(k => `<span class="kbd">${k}</span>`).join('')}</span></div>`).join('')}</div>
-    <div class="modal-foot"><button type="button" class="btn btn-primary" onclick="Modal.close()">Got it</button></div>
-  </div>`;
+  return '<div class="modal modal-md"><div class="modal-head"><h3 class="modal-title">\u2328\uFE0F Keyboard Shortcuts</h3><button type="button" class="modal-close" onclick="Modal.close()">\u00D7</button></div><div class="modal-body">' + shortcuts.map(s => '<div class="shortcut-item"><span class="shortcut-label">' + UI.esc(s.label) + '</span><span class="shortcut-keys">' + s.keys.map(k => '<span class="kbd">' + k + '</span>').join('') + '</span></div>').join('') + '</div><div class="modal-foot"><button type="button" class="btn btn-primary" onclick="Modal.close()">Got it</button></div></div>';
 };
 
 Modal.templates.pipelineModal = function () {
   const stages = ['Applied', 'Screening', 'Interview', 'Offer'];
   const html = stages.map((stage, i) => {
     const candidates = State.candidates.slice(i, i + 2);
-    return `<div class="pipeline-col"><div class="pipeline-col-title">${stage}<span class="kanban-col-count">${candidates.length}</span></div>${candidates.length ? candidates.map(c => `<div class="pipeline-card"><div class="pipeline-card-name">${UI.esc(c.name)}</div><div class="pipeline-card-meta">${UI.esc(c.degree)} · ${UI.esc(c.location)}</div></div>`).join('') : '<div style="text-align:center;padding:16px;color:var(--slate-400);font-size:11px;">Empty</div>'}</div>`;
+    return '<div class="pipeline-col"><div class="pipeline-col-title">' + stage + '<span class="kanban-col-count">' + candidates.length + '</span></div>' + (candidates.length ? candidates.map(c => '<div class="pipeline-card"><div class="pipeline-card-name">' + UI.esc(c.name) + '</div><div class="pipeline-card-meta">' + UI.esc(c.degree) + ' \u00B7 ' + UI.esc(c.location) + '</div></div>').join('') : '<div style="text-align:center;padding:16px;color:var(--slate-400);font-size:11px;">Empty</div>') + '</div>';
   }).join('');
-  return `<div class="modal modal-xl">
-    <div class="modal-head"><h3 class="modal-title">🔀 Talent Pipeline</h3><button type="button" class="modal-close" onclick="Modal.close()">×</button></div>
-    <div class="modal-body"><div class="pipeline">${html}</div></div>
-    <div class="modal-foot"><button type="button" class="btn btn-primary" onclick="Modal.close()">Close</button></div>
-  </div>`;
+  return '<div class="modal modal-xl"><div class="modal-head"><h3 class="modal-title">\uD83D\uDD00 Talent Pipeline</h3><button type="button" class="modal-close" onclick="Modal.close()">\u00D7</button></div><div class="modal-body"><div class="pipeline">' + html + '</div></div><div class="modal-foot"><button type="button" class="btn btn-primary" onclick="Modal.close()">Close</button></div></div>';
 };
 
 Modal.templates.globalSearchModal = function () {
-  return `<div class="modal modal-lg">
-    <div class="modal-head"><h3 class="modal-title">🔍 Global Search</h3><button type="button" class="modal-close" onclick="Modal.close()">×</button></div>
-    <div class="modal-body">
-      <div class="search-wrap" style="margin-bottom:16px;"><span class="search-icon">🔍</span><input id="global-search-input" class="global-search-input" placeholder="Search..." oninput="App.performGlobalSearch()"></div>
-      <div id="global-search-results"></div>
-    </div>
-  </div>`;
+  return '<div class="modal modal-lg"><div class="modal-head"><h3 class="modal-title">\uD83D\uDD0D Global Search</h3><button type="button" class="modal-close" onclick="Modal.close()">\u00D7</button></div><div class="modal-body"><div class="search-wrap" style="margin-bottom:16px;"><span class="search-icon">\uD83D\uDD0D</span><input id="global-search-input" class="global-search-input" placeholder="Search..." oninput="App.performGlobalSearch()"></div><div id="global-search-results"></div></div></div>';
 };
 
 Modal.templates.mentorsModal = function () {
   const list = State.mentors.length ? State.mentors : [];
-  return `<div class="modal modal-lg">
-    <div class="modal-head"><h3 class="modal-title">👥 Mentor Network</h3><button type="button" class="modal-close" onclick="Modal.close()">×</button></div>
-    <div class="modal-body">
-      ${list.length ? list.map(m => `<div class="mentor-card"><div class="mentor-avatar avatar ${m.color}">${m.initials}</div><div class="mentor-info"><div class="mentor-name">${UI.esc(m.name)} <span style="font-size:11px;color:var(--slate-400);font-weight:500;">· ${m.rating}★</span></div><div class="mentor-title">${UI.esc(m.title)}</div><div class="mentor-tags">${m.expertise.map(e => `<span class="mentor-tag">${UI.esc(e)}</span>`).join('')}</div></div><div class="mentor-actions"><button type="button" class="btn btn-primary btn-xs" onclick="Toast.show('Request sent','success')">Connect</button></div></div>`).join('') : UI.empty('No mentors')}
-    </div>
-    <div class="modal-foot"><button type="button" class="btn btn-primary" onclick="Modal.close()">Close</button></div>
-  </div>`;
+  return '<div class="modal modal-lg"><div class="modal-head"><h3 class="modal-title">\uD83D\uDC65 Mentor Network</h3><button type="button" class="modal-close" onclick="Modal.close()">\u00D7</button></div><div class="modal-body">' + (list.length ? list.map(m => '<div class="mentor-card"><div class="mentor-avatar avatar ' + m.color + '">' + m.initials + '</div><div class="mentor-info"><div class="mentor-name">' + UI.esc(m.name) + ' <span style="font-size:11px;color:var(--slate-400);font-weight:500;">\u00B7 ' + m.rating + '\u2605</span></div><div class="mentor-title">' + UI.esc(m.title) + '</div><div class="mentor-tags">' + m.expertise.map(e => '<span class="mentor-tag">' + UI.esc(e) + '</span>').join('') + '</div></div><div class="mentor-actions"><button type="button" class="btn btn-primary btn-xs" onclick="Toast.show(\'Request sent\',\'success\')">Connect</button></div></div>').join('') : UI.empty('No mentors')) + '</div><div class="modal-foot"><button type="button" class="btn btn-primary" onclick="Modal.close()">Close</button></div></div>';
 };
 
 Modal.templates.referralModal = function () {
   const code = (Departments[State.department] ? Departments[State.department].short : 'TB') + (State.user ? (State.user.initials || 'XX') : 'XX') + '2026';
-  return `<div class="modal modal-md">
-    <div class="modal-head"><h3 class="modal-title">🎁 Refer a Friend</h3><button type="button" class="modal-close" onclick="Modal.close()">×</button></div>
-    <div class="modal-body">
-      <div class="referral-box">
-        <div class="referral-title">Invite & Earn</div>
-        <div class="referral-desc">Get ₹500 per friend who completes profile.</div>
-        <div class="referral-code">${code} <button type="button" class="btn btn-ghost btn-xs" style="color:#fff;" onclick="App.copyReferral('${code}')">📋</button></div>
-        <div class="referral-stats">
-          <div><div class="referral-stat-value">${State.referrals}</div><div class="referral-stat-label">Invited</div></div>
-          <div><div class="referral-stat-value">₹${State.referrals * 500}</div><div class="referral-stat-label">Earned</div></div>
-          <div><div class="referral-stat-value">3</div><div class="referral-stat-label">Joined</div></div>
-        </div>
-      </div>
-    </div>
-    <div class="modal-foot">
-      <button type="button" class="btn btn-outline" onclick="App.shareReferral()">Share</button>
-      <button type="button" class="btn btn-primary" onclick="App.inviteFriend()">+ Invite</button>
-    </div>
-  </div>`;
+  return '<div class="modal modal-md"><div class="modal-head"><h3 class="modal-title">\uD83C\uDF81 Refer a Friend</h3><button type="button" class="modal-close" onclick="Modal.close()">\u00D7</button></div><div class="modal-body"><div class="referral-box"><div class="referral-title">Invite & Earn</div><div class="referral-desc">Get \u20B9500 per friend who completes profile.</div><div class="referral-code">' + code + ' <button type="button" class="btn btn-ghost btn-xs" style="color:#fff;" onclick="App.copyReferral(\'' + code + '\')">\uD83D\uDCCB</button></div><div class="referral-stats"><div><div class="referral-stat-value">' + State.referrals + '</div><div class="referral-stat-label">Invited</div></div><div><div class="referral-stat-value">\u20B9' + (State.referrals * 500) + '</div><div class="referral-stat-label">Earned</div></div><div><div class="referral-stat-value">3</div><div class="referral-stat-label">Joined</div></div></div></div></div><div class="modal-foot"><button type="button" class="btn btn-outline" onclick="App.shareReferral()">Share</button><button type="button" class="btn btn-primary" onclick="App.inviteFriend()">+ Invite</button></div></div>';
 };
 
 Modal.templates.quizModal = function () {
   const dept = Departments[State.department] ? Departments[State.department].short : 'CSE';
-  return `<div class="modal modal-lg">
-    <div class="modal-head"><h3 class="modal-title">🎯 ${dept} Skill Assessment Quiz</h3><button type="button" class="modal-close" onclick="Modal.close()">×</button></div>
-    <div class="modal-body" id="quiz-body"></div>
-    <div class="modal-foot">
-      <button type="button" class="btn btn-outline" onclick="Modal.close()">Close</button>
-      <button type="button" class="btn btn-primary" onclick="Modal.close(); setTimeout(function(){ Quiz.start(); }, 100);">Restart</button>
-    </div>
-  </div>`;
+  return '<div class="modal modal-lg"><div class="modal-head"><h3 class="modal-title">\uD83C\uDFAF ' + dept + ' Skill Assessment Quiz</h3><button type="button" class="modal-close" onclick="Modal.close()">\u00D7</button></div><div class="modal-body" id="quiz-body"></div><div class="modal-foot"><button type="button" class="btn btn-outline" onclick="Modal.close()">Close</button><button type="button" class="btn btn-primary" onclick="Modal.close(); setTimeout(function(){ Quiz.start(); }, 100);">Restart</button></div></div>';
 };
 
 Modal.templates.videoInterviewModal = function () {
-  return `<div class="modal modal-lg">
-    <div class="modal-head"><h3 class="modal-title">🎥 Video Interview</h3><button type="button" class="modal-close" onclick="Modal.close()">×</button></div>
-    <div class="modal-body">
-      <div class="video-preview" id="video-preview-area">
-        <div class="video-avatar" id="video-avatar-display">${State.user ? State.user.initials : 'AS'}</div>
-        <div id="video-status-text" style="position:absolute;bottom:10px;left:50%;transform:translateX(-50%);color:#fff;font-size:12px;background:rgba(0,0,0,.5);padding:4px 12px;border-radius:20px;">Connecting...</div>
-      </div>
-      <div style="text-align:center;margin-bottom:8px;"><div style="font-size:15px;font-weight:800;color:var(--slate-900);">Mock Interview</div><div style="font-size:12px;color:var(--slate-500);margin-top:2px;">Practice Session</div></div>
-      <div class="video-controls">
-        <button type="button" class="video-control active" id="mic-btn" onclick="App.toggleMic()">🎙️</button>
-        <button type="button" class="video-control active" id="cam-btn" onclick="App.toggleCam()">📹</button>
-        <button type="button" class="video-control" onclick="Toast.show('Chat feature coming soon','info')">💬</button>
-        <button type="button" class="video-control danger" id="end-call-btn" onclick="App.endVideoCall()">📞</button>
-      </div>
-      <div id="video-timer" style="text-align:center;font-size:14px;font-weight:700;color:var(--slate-600);">00:00</div>
-    </div>
-    <div class="modal-foot">
-      <button type="button" class="btn btn-outline" onclick="Modal.close()">Leave</button>
-      <button type="button" class="btn btn-primary" onclick="App.endVideoCallAndSave()">End & Save</button>
-    </div>
-  </div>`;
+  return '<div class="modal modal-lg"><div class="modal-head"><h3 class="modal-title">\uD83C\uDFA5 Video Interview</h3><button type="button" class="modal-close" onclick="Modal.close()">\u00D7</button></div><div class="modal-body"><div class="video-preview" id="video-preview-area"><div class="video-avatar" id="video-avatar-display">' + (State.user ? State.user.initials : 'AS') + '</div><div id="video-status-text" style="position:absolute;bottom:10px;left:50%;transform:translateX(-50%);color:#fff;font-size:12px;background:rgba(0,0,0,.5);padding:4px 12px;border-radius:20px;">Connecting...</div></div><div style="text-align:center;margin-bottom:8px;"><div style="font-size:15px;font-weight:800;color:var(--slate-900);">Mock Interview</div><div style="font-size:12px;color:var(--slate-500);margin-top:2px;">Practice Session</div></div><div class="video-controls"><button type="button" class="video-control active" id="mic-btn" onclick="App.toggleMic()">\uD83C\uDF99\uFE0F</button><button type="button" class="video-control active" id="cam-btn" onclick="App.toggleCam()">\uD83D\uDCF9</button><button type="button" class="video-control" onclick="Toast.show(\'Chat feature coming soon\',\'info\')">\uD83D\uDCAC</button><button type="button" class="video-control danger" id="end-call-btn" onclick="App.endVideoCall()">\uD83D\uDCDE</button></div><div id="video-timer" style="text-align:center;font-size:14px;font-weight:700;color:var(--slate-600);">00:00</div></div><div class="modal-foot"><button type="button" class="btn btn-outline" onclick="Modal.close()">Leave</button><button type="button" class="btn btn-primary" onclick="App.endVideoCallAndSave()">End & Save</button></div></div>';
 };
 
 Modal.templates.confirmModal = function (title, message, actionFn) {
-  return `<div class="modal modal-sm">
-    <div class="modal-head"><h3 class="modal-title">${UI.esc(title)}</h3><button type="button" class="modal-close" onclick="Modal.close()">×</button></div>
-    <div class="modal-body"><p style="font-size:14px;color:var(--slate-600);line-height:1.6;">${UI.esc(message)}</p></div>
-    <div class="modal-foot">
-      <button type="button" class="btn btn-outline" onclick="Modal.close()">Cancel</button>
-      <button type="button" class="btn btn-danger" onclick="Modal.close(); ${actionFn}">Confirm</button>
-    </div>
-  </div>`;
+  return '<div class="modal modal-sm"><div class="modal-head"><h3 class="modal-title">' + UI.esc(title) + '</h3><button type="button" class="modal-close" onclick="Modal.close()">\u00D7</button></div><div class="modal-body"><p style="font-size:14px;color:var(--slate-600);line-height:1.6;">' + UI.esc(message) + '</p></div><div class="modal-foot"><button type="button" class="btn btn-outline" onclick="Modal.close()">Cancel</button><button type="button" class="btn btn-danger" onclick="Modal.close(); ' + actionFn + '">Confirm</button></div></div>';
 };
 
 Modal.templates.profileMenuModal = function () {
-  if (!State.user) return `<div class="modal modal-sm"><div class="modal-body">${UI.empty('Not signed in')}</div></div>`;
+  if (!State.user) return '<div class="modal modal-sm"><div class="modal-body">' + UI.empty('Not signed in') + '</div></div>';
   const role = State.user.role;
   const label = UserRegistry.roleLabel(role);
   const emoji = UserRegistry.roleEmoji(role);
@@ -1153,39 +741,25 @@ Modal.templates.profileMenuModal = function () {
     const dept = Departments[State.department] || Departments.CSE;
     const avg = State.skills.length ? Math.round(State.skills.reduce((a, s) => a + s.level, 0) / State.skills.length) : 0;
     const grade = avg >= 90 ? 'A+' : avg >= 80 ? 'A' : avg >= 70 ? 'B+' : avg >= 60 ? 'B' : 'C';
-    body += `<div class="pm-info-row"><span class="pm-info-label">Field of Study</span><span class="pm-info-value">${UI.esc(dept.name)}</span></div>`;
-    if (extras.gradYear) body += `<div class="pm-info-row"><span class="pm-info-label">Graduation Year</span><span class="pm-info-value">${UI.esc(extras.gradYear)}</span></div>`;
-    if (extras.institution) body += `<div class="pm-info-row"><span class="pm-info-label">Institution</span><span class="pm-info-value">${UI.esc(extras.institution)}</span></div>`;
-    body += `<div class="pm-info-row"><span class="pm-info-label">Skill Grade</span><span class="pm-info-value">${grade} · ${avg}%</span></div>`;
-    body += `<div class="pm-stats"><div class="pm-stat student"><div class="pm-stat-value">${State.skills.length}</div><div class="pm-stat-label">Skills</div></div><div class="pm-stat student"><div class="pm-stat-value">${State.applications.length}</div><div class="pm-stat-label">Applications</div></div><div class="pm-stat student"><div class="pm-stat-value">${State.profileViewsCount || 0}</div><div class="pm-stat-label">Views</div></div></div>`;
+    body += '<div class="pm-info-row"><span class="pm-info-label">Field of Study</span><span class="pm-info-value">' + UI.esc(dept.name) + '</span></div>';
+    if (extras.gradYear) body += '<div class="pm-info-row"><span class="pm-info-label">Graduation Year</span><span class="pm-info-value">' + UI.esc(extras.gradYear) + '</span></div>';
+    if (extras.institution) body += '<div class="pm-info-row"><span class="pm-info-label">Institution</span><span class="pm-info-value">' + UI.esc(extras.institution) + '</span></div>';
+    body += '<div class="pm-info-row"><span class="pm-info-label">Skill Grade</span><span class="pm-info-value">' + grade + ' \u00B7 ' + avg + '%</span></div>';
+    body += '<div class="pm-stats"><div class="pm-stat student"><div class="pm-stat-value">' + State.skills.length + '</div><div class="pm-stat-label">Skills</div></div><div class="pm-stat student"><div class="pm-stat-value">' + State.applications.length + '</div><div class="pm-stat-label">Applications</div></div><div class="pm-stat student"><div class="pm-stat-value">' + (State.profileViewsCount || 0) + '</div><div class="pm-stat-label">Views</div></div></div>';
   } else if (role === 'industry') {
     const totalApplicants = State.myPostings.reduce((a, p) => a + (p.applicants || 0), 0);
     const totalShortlisted = State.myPostings.reduce((a, p) => a + (p.shortlisted || 0), 0);
-    if (extras.company) body += `<div class="pm-info-row"><span class="pm-info-label">Company</span><span class="pm-info-value">${UI.esc(extras.company)}</span></div>`;
-    if (extras.designation) body += `<div class="pm-info-row"><span class="pm-info-label">Designation</span><span class="pm-info-value">${UI.esc(extras.designation)}</span></div>`;
-    body += `<div class="pm-stats"><div class="pm-stat industry"><div class="pm-stat-value">${State.myPostings.filter(p => p.status === 'Active').length}</div><div class="pm-stat-label">Active Jobs</div></div><div class="pm-stat industry"><div class="pm-stat-value">${totalApplicants}</div><div class="pm-stat-label">Applicants</div></div><div class="pm-stat industry"><div class="pm-stat-value">${totalShortlisted}</div><div class="pm-stat-label">Shortlisted</div></div></div>`;
+    if (extras.company) body += '<div class="pm-info-row"><span class="pm-info-label">Company</span><span class="pm-info-value">' + UI.esc(extras.company) + '</span></div>';
+    if (extras.designation) body += '<div class="pm-info-row"><span class="pm-info-label">Designation</span><span class="pm-info-value">' + UI.esc(extras.designation) + '</span></div>';
+    body += '<div class="pm-stats"><div class="pm-stat industry"><div class="pm-stat-value">' + State.myPostings.filter(p => p.status === 'Active').length + '</div><div class="pm-stat-label">Active Jobs</div></div><div class="pm-stat industry"><div class="pm-stat-value">' + totalApplicants + '</div><div class="pm-stat-label">Applicants</div></div><div class="pm-stat industry"><div class="pm-stat-value">' + totalShortlisted + '</div><div class="pm-stat-label">Shortlisted</div></div></div>';
   } else {
-    if (extras.institution) body += `<div class="pm-info-row"><span class="pm-info-label">Institution</span><span class="pm-info-value">${UI.esc(extras.institution)}</span></div>`;
-    if (extras.designation) body += `<div class="pm-info-row"><span class="pm-info-label">Designation</span><span class="pm-info-value">${UI.esc(extras.designation)}</span></div>`;
-    body += `<div class="pm-stats"><div class="pm-stat academia"><div class="pm-stat-value">82%</div><div class="pm-stat-label">Placed</div></div><div class="pm-stat academia"><div class="pm-stat-value">520+</div><div class="pm-stat-label">Internships</div></div><div class="pm-stat academia"><div class="pm-stat-value">150</div><div class="pm-stat-label">Partners</div></div></div>`;
+    if (extras.institution) body += '<div class="pm-info-row"><span class="pm-info-label">Institution</span><span class="pm-info-value">' + UI.esc(extras.institution) + '</span></div>';
+    if (extras.designation) body += '<div class="pm-info-row"><span class="pm-info-label">Designation</span><span class="pm-info-value">' + UI.esc(extras.designation) + '</span></div>';
+    body += '<div class="pm-stats"><div class="pm-stat academia"><div class="pm-stat-value">82%</div><div class="pm-stat-label">Placed</div></div><div class="pm-stat academia"><div class="pm-stat-value">520+</div><div class="pm-stat-label">Internships</div></div><div class="pm-stat academia"><div class="pm-stat-value">150</div><div class="pm-stat-label">Partners</div></div></div>';
   }
   body += '</div>';
   const badgeClass = role === 'student' ? '' : role;
-  return `<div class="modal modal-md">
-    <div class="pm-header ${role}">
-      <div class="pm-avatar-wrap">
-        <div class="pm-avatar">${State.user.initials || 'U'}</div>
-        <div class="pm-role-badge ${badgeClass}">${emoji} ${label}</div>
-      </div>
-      <div class="pm-name">${UI.esc(State.user.name)}</div>
-      <div class="pm-email">${UI.esc(State.user.email)}</div>
-    </div>
-    ${body}
-    <div class="modal-foot">
-      <button type="button" class="btn btn-outline" onclick="Tour.start(); Modal.close();">🎯 Tour</button>
-      <button type="button" class="btn btn-danger" onclick="Modal.close(); Auth.logout(event);">Sign Out</button>
-    </div>
-  </div>`;
+  return '<div class="modal modal-md"><div class="pm-header ' + role + '"><div class="pm-avatar-wrap"><div class="pm-avatar">' + (State.user.initials || 'U') + '</div><div class="pm-role-badge ' + badgeClass + '">' + emoji + ' ' + label + '</div></div><div class="pm-name">' + UI.esc(State.user.name) + '</div><div class="pm-email">' + UI.esc(State.user.email) + '</div></div>' + body + '<div class="modal-foot"><button type="button" class="btn btn-outline" onclick="Tour.start(); Modal.close();">\uD83C\uDFAF Tour</button><button type="button" class="btn btn-danger" onclick="Modal.close(); Auth.logout(event);">Sign Out</button></div></div>';
 };
 
 Modal.templates.forgotPasswordModal = function () {
@@ -1194,88 +768,47 @@ Modal.templates.forgotPasswordModal = function () {
   const role = State.reset.role;
   const roleLabel = role ? UserRegistry.roleLabel(role) : '';
   const roleEmoji = role ? UserRegistry.roleEmoji(role) : '';
-
   let stepBar = '<div style="display:flex;align-items:center;gap:4px;">';
-  stepBar += `<div style="width:26px;height:26px;border-radius:50%;background:${step === 1 ? '#1e3a8a' : step > 1 ? '#10b981' : '#e2e8f0'};color:${step >= 1 ? '#fff' : '#64748b'};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;">${step > 1 ? '✓' : '1'}</div>`;
-  stepBar += `<span style="font-size:11px;font-weight:700;color:${step === 1 ? '#1e3a8a' : step > 1 ? '#059669' : '#94a3b8'};">Email</span></div>`;
-  stepBar += `<div style="flex:1;height:2px;background:${step > 1 ? '#10b981' : '#e2e8f0'};"></div>`;
+  stepBar += '<div style="width:26px;height:26px;border-radius:50%;background:' + (step === 1 ? '#1e3a8a' : step > 1 ? '#10b981' : '#e2e8f0') + ';color:' + (step >= 1 ? '#fff' : '#64748b') + ';display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;">' + (step > 1 ? '\u2713' : '1') + '</div>';
+  stepBar += '<span style="font-size:11px;font-weight:700;color:' + (step === 1 ? '#1e3a8a' : step > 1 ? '#059669' : '#94a3b8') + ';">Email</span></div>';
+  stepBar += '<div style="flex:1;height:2px;background:' + (step > 1 ? '#10b981' : '#e2e8f0') + ';"></div>';
   stepBar += '<div style="display:flex;align-items:center;gap:4px;">';
-  stepBar += `<div style="width:26px;height:26px;border-radius:50%;background:${step === 2 ? '#1e3a8a' : step > 2 ? '#10b981' : '#e2e8f0'};color:${step >= 2 ? '#fff' : '#64748b'};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;">${step > 2 ? '✓' : '2'}</div>`;
-  stepBar += `<span style="font-size:11px;font-weight:700;color:${step === 2 ? '#1e3a8a' : step > 2 ? '#059669' : '#94a3b8'};">OTP</span></div>`;
-  stepBar += `<div style="flex:1;height:2px;background:${step > 2 ? '#10b981' : '#e2e8f0'};"></div>`;
+  stepBar += '<div style="width:26px;height:26px;border-radius:50%;background:' + (step === 2 ? '#1e3a8a' : step > 2 ? '#10b981' : '#e2e8f0') + ';color:' + (step >= 2 ? '#fff' : '#64748b') + ';display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;">' + (step > 2 ? '\u2713' : '2') + '</div>';
+  stepBar += '<span style="font-size:11px;font-weight:700;color:' + (step === 2 ? '#1e3a8a' : step > 2 ? '#059669' : '#94a3b8') + ';">OTP</span></div>';
+  stepBar += '<div style="flex:1;height:2px;background:' + (step > 2 ? '#10b981' : '#e2e8f0') + ';"></div>';
   stepBar += '<div style="display:flex;align-items:center;gap:4px;">';
-  stepBar += `<div style="width:26px;height:26px;border-radius:50%;background:${step === 3 ? '#1e3a8a' : '#e2e8f0'};color:${step === 3 ? '#fff' : '#64748b'};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;">3</div>`;
-  stepBar += `<span style="font-size:11px;font-weight:700;color:${step === 3 ? '#1e3a8a' : '#94a3b8'};">Reset</span></div>`;
+  stepBar += '<div style="width:26px;height:26px;border-radius:50%;background:' + (step === 3 ? '#1e3a8a' : '#e2e8f0') + ';color:' + (step === 3 ? '#fff' : '#64748b') + ';display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;">3</div>';
+  stepBar += '<span style="font-size:11px;font-weight:700;color:' + (step === 3 ? '#1e3a8a' : '#94a3b8') + ';">Reset</span></div>';
 
   let body = '';
   if (step === 1) {
-    body += `<div style="text-align:center;margin-bottom:22px;">
-      <div style="width:64px;height:64px;margin:0 auto 12px;border-radius:18px;background:linear-gradient(135deg,#1d4ed8,#1e3a8a);display:flex;align-items:center;justify-content:center;font-size:30px;">🔑</div>
-      <h3 style="font-size:20px;font-weight:800;color:var(--slate-900);">Forgot Password?</h3>
-      <p style="font-size:13px;color:var(--slate-500);margin-top:6px;">Choose how to receive your OTP.</p>
-    </div>
-    <div class="field"><label>Email Address <span class="req">*</span></label><input id="forgot-email" type="email" class="input" placeholder="you@example.com" value="${UI.esc(email)}"></div>
-    <div class="field">
-      <label>OTP Delivery Method <span class="req">*</span></label>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-        <div id="channel-email" onclick="State.reset.channel='email';Auth.renderForgotStep();" style="cursor:pointer;padding:14px;border-radius:10px;border:2px solid ${State.reset.channel === 'email' ? '#1e3a8a' : '#e2e8f0'};background:${State.reset.channel === 'email' ? '#eff6ff' : '#fff'};text-align:center;">
-          <div style="font-size:24px;margin-bottom:4px;">📧</div>
-          <div style="font-size:12px;font-weight:700;color:var(--slate-800);">Email</div>
-        </div>
-        <div id="channel-sms" onclick="State.reset.channel='sms';Auth.renderForgotStep();" style="cursor:pointer;padding:14px;border-radius:10px;border:2px solid ${State.reset.channel === 'sms' ? '#1e3a8a' : '#e2e8f0'};background:${State.reset.channel === 'sms' ? '#eff6ff' : '#fff'};text-align:center;">
-          <div style="font-size:24px;margin-bottom:4px;">📱</div>
-          <div style="font-size:12px;font-weight:700;color:var(--slate-800);">Phone (SMS)</div>
-        </div>
-      </div>
-    </div>
-    <div id="forgot-error" class="field-error hidden"></div>
-    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 14px;font-size:11px;color:#1e40af;line-height:1.5;margin-top:10px;">
-      💡 Use the same email you signed up with. ${State.reset.channel === 'sms' ? 'A phone number must be saved on your account.' : 'We will send a 6-digit code.'}
-    </div>`;
+    body += '<div style="text-align:center;margin-bottom:22px;"><div style="width:64px;height:64px;margin:0 auto 12px;border-radius:18px;background:linear-gradient(135deg,#1d4ed8,#1e3a8a);display:flex;align-items:center;justify-content:center;font-size:30px;">\uD83D\uDD11</div><h3 style="font-size:20px;font-weight:800;color:var(--slate-900);">Forgot Password?</h3><p style="font-size:13px;color:var(--slate-500);margin-top:6px;">Choose how to receive your OTP.</p></div>';
+    body += '<div class="field"><label>Email Address <span class="req">*</span></label><input id="forgot-email" type="email" class="input" placeholder="you@example.com" value="' + UI.esc(email) + '"></div>';
+    body += '<div class="field"><label>OTP Delivery Method <span class="req">*</span></label><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">';
+    body += '<div id="channel-email" onclick="State.reset.channel=\'email\';Auth.renderForgotStep();" style="cursor:pointer;padding:14px;border-radius:10px;border:2px solid ' + (State.reset.channel === 'email' ? '#1e3a8a' : '#e2e8f0') + ';background:' + (State.reset.channel === 'email' ? '#eff6ff' : '#fff') + ';text-align:center;"><div style="font-size:24px;margin-bottom:4px;">\uD83D\uDCE7</div><div style="font-size:12px;font-weight:700;color:var(--slate-800);">Email</div></div>';
+    body += '<div id="channel-sms" onclick="State.reset.channel=\'sms\';Auth.renderForgotStep();" style="cursor:pointer;padding:14px;border-radius:10px;border:2px solid ' + (State.reset.channel === 'sms' ? '#1e3a8a' : '#e2e8f0') + ';background:' + (State.reset.channel === 'sms' ? '#eff6ff' : '#fff') + ';text-align:center;"><div style="font-size:24px;margin-bottom:4px;">\uD83D\uDCF1</div><div style="font-size:12px;font-weight:700;color:var(--slate-800);">Phone (SMS)</div></div>';
+    body += '</div></div>';
+    body += '<div id="forgot-error" class="field-error hidden"></div>';
+    body += '<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 14px;font-size:11px;color:#1e40af;line-height:1.5;margin-top:10px;">\uD83D\uDCA1 Use the same email you signed up with. ' + (State.reset.channel === 'sms' ? 'A phone number must be saved on your account.' : 'We will send a 6-digit code.') + '</div>';
   } else if (step === 2) {
-    body += `<div style="text-align:center;margin-bottom:18px;">
-      <div style="width:64px;height:64px;margin:0 auto 12px;border-radius:18px;background:linear-gradient(135deg,#8b5cf6,#6d28d9);display:flex;align-items:center;justify-content:center;font-size:30px;">${State.reset.channel === 'sms' ? '📱' : '📧'}</div>
-      <h3 style="font-size:20px;font-weight:800;color:var(--slate-900);">Verify OTP</h3>
-      <p style="font-size:13px;color:var(--slate-500);margin-top:6px;">Code sent to <strong>${UI.esc(State.reset.target || email)}</strong></p>
-      ${role ? `<p style="font-size:11px;color:var(--slate-400);margin-top:4px;">Account: ${roleEmoji} ${UI.esc(roleLabel)}</p>` : ''}
-    </div>
-    ${State.reset.devOtp ? `<div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:10px;padding:12px 14px;font-size:12px;color:#92400e;margin-bottom:16px;text-align:center;">🔐 <strong>DEV OTP:</strong> <span style="font-family:monospace;font-size:16px;font-weight:800;letter-spacing:.15em;">${UI.esc(State.reset.devOtp)}</span></div>` : ''}
-    <label style="display:block;font-size:12px;font-weight:600;color:var(--slate-700);margin-bottom:8px;text-align:center;">Enter 6-digit OTP</label>
-    <div class="otp-grid" id="otp-grid">
-      ${[0,1,2,3,4,5].map(i => `<input type="text" inputmode="numeric" maxlength="1" class="otp-input" data-idx="${i}" oninput="Auth.onOtpInput(this)" onkeydown="Auth.onOtpKey(event,this)" onpaste="Auth.onOtpPaste(event)">`).join('')}
-    </div>
-    <div id="otp-error" class="field-error hidden"></div>
-    <div style="text-align:center;margin-top:12px;">
-      <span style="font-size:12px;color:var(--slate-500);">Did not receive it? </span>
-      <span id="resend-otp-link" style="font-size:13px;color:#1d4ed8;font-weight:600;cursor:pointer;text-decoration:underline;" onclick="Auth.resendOtp()">Resend OTP</span>
-      <span id="resend-otp-timer" style="font-size:12px;color:#94a3b8;display:none;margin-left:6px;"></span>
-    </div>`;
+    body += '<div style="text-align:center;margin-bottom:18px;"><div style="width:64px;height:64px;margin:0 auto 12px;border-radius:18px;background:linear-gradient(135deg,#8b5cf6,#6d28d9);display:flex;align-items:center;justify-content:center;font-size:30px;">' + (State.reset.channel === 'sms' ? '\uD83D\uDCF1' : '\uD83D\uDCE7') + '</div><h3 style="font-size:20px;font-weight:800;color:var(--slate-900);">Verify OTP</h3><p style="font-size:13px;color:var(--slate-500);margin-top:6px;">Code sent to <strong>' + UI.esc(State.reset.target || email) + '</strong></p>' + (role ? '<p style="font-size:11px;color:var(--slate-400);margin-top:4px;">Account: ' + roleEmoji + ' ' + UI.esc(roleLabel) + '</p>' : '') + '</div>';
+    if (State.reset.devOtp) body += '<div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:10px;padding:12px 14px;font-size:12px;color:#92400e;margin-bottom:16px;text-align:center;">\uD83D\uDD10 <strong>DEV OTP:</strong> <span style="font-family:monospace;font-size:16px;font-weight:800;letter-spacing:.15em;">' + UI.esc(State.reset.devOtp) + '</span></div>';
+    body += '<label style="display:block;font-size:12px;font-weight:600;color:var(--slate-700);margin-bottom:8px;text-align:center;">Enter 6-digit OTP</label>';
+    body += '<div class="otp-grid" id="otp-grid">';
+    for (let i = 0; i < 6; i++) body += '<input type="text" inputmode="numeric" maxlength="1" class="otp-input" data-idx="' + i + '" oninput="Auth.onOtpInput(this)" onkeydown="Auth.onOtpKey(event,this)" onpaste="Auth.onOtpPaste(event)">';
+    body += '</div><div id="otp-error" class="field-error hidden"></div>';
+    body += '<div style="text-align:center;margin-top:12px;"><span style="font-size:12px;color:var(--slate-500);">Did not receive it? </span><span id="resend-otp-link" style="font-size:13px;color:#1d4ed8;font-weight:600;cursor:pointer;text-decoration:underline;" onclick="Auth.resendOtp()">Resend OTP</span><span id="resend-otp-timer" style="font-size:12px;color:#94a3b8;display:none;margin-left:6px;"></span></div>';
   } else {
-    body += `<div style="text-align:center;margin-bottom:18px;">
-      <div style="width:64px;height:64px;margin:0 auto 12px;border-radius:18px;background:linear-gradient(135deg,#059669,#10b981);display:flex;align-items:center;justify-content:center;font-size:30px;">🔐</div>
-      <h3 style="font-size:20px;font-weight:800;color:var(--slate-900);">Set New Password</h3>
-      <p style="font-size:13px;color:var(--slate-500);margin-top:6px;">Choose a strong password (min 6 characters).</p>
-    </div>
-    <div class="field"><label>New Password <span class="req">*</span></label><div class="input-wrap"><input id="forgot-new-pwd" type="password" class="input" placeholder="Min 6 characters" oninput="Auth.checkForgotPwdMatch()"><button type="button" class="input-toggle" onclick="Auth.togglePassword('forgot-new-pwd',this)">👁</button></div></div>
-    <div class="field"><label>Confirm New Password <span class="req">*</span></label><div class="input-wrap"><input id="forgot-confirm-pwd" type="password" class="input" placeholder="Re-enter password" oninput="Auth.checkForgotPwdMatch()"><button type="button" class="input-toggle" onclick="Auth.togglePassword('forgot-confirm-pwd',this)">👁</button></div><div id="forgot-pwd-match-msg" class="field-error hidden"></div></div>
-    <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;padding:10px 14px;font-size:11px;color:#047857;line-height:1.5;">✓ OTP verified for <strong>${UI.esc(email)}</strong></div>`;
+    body += '<div style="text-align:center;margin-bottom:18px;"><div style="width:64px;height:64px;margin:0 auto 12px;border-radius:18px;background:linear-gradient(135deg,#059669,#10b981);display:flex;align-items:center;justify-content:center;font-size:30px;">\uD83D\uDD10</div><h3 style="font-size:20px;font-weight:800;color:var(--slate-900);">Set New Password</h3><p style="font-size:13px;color:var(--slate-500);margin-top:6px;">Choose a strong password (min 6 characters).</p></div>';
+    body += '<div class="field"><label>New Password <span class="req">*</span></label><div class="input-wrap"><input id="forgot-new-pwd" type="password" class="input" placeholder="Min 6 characters" oninput="Auth.checkForgotPwdMatch()"><button type="button" class="input-toggle" onclick="Auth.togglePassword(\'forgot-new-pwd\',this)">\uD83D\uDC41</button></div></div>';
+    body += '<div class="field"><label>Confirm New Password <span class="req">*</span></label><div class="input-wrap"><input id="forgot-confirm-pwd" type="password" class="input" placeholder="Re-enter password" oninput="Auth.checkForgotPwdMatch()"><button type="button" class="input-toggle" onclick="Auth.togglePassword(\'forgot-confirm-pwd\',this)">\uD83D\uDC41</button></div><div id="forgot-pwd-match-msg" class="field-error hidden"></div></div>';
+    body += '<div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;padding:10px 14px;font-size:11px;color:#047857;line-height:1.5;">\u2713 OTP verified for <strong>' + UI.esc(email) + '</strong></div>';
   }
-
   let footButtons = '';
-  if (step === 1) {
-    footButtons = `<button type="button" class="btn btn-outline" onclick="Modal.close()">Cancel</button><button type="button" class="btn btn-primary" onclick="Auth.sendOtp()">Send OTP →</button>`;
-  } else if (step === 2) {
-    footButtons = `<button type="button" class="btn btn-outline" onclick="Auth.resetToStep(1)">← Back</button><button type="button" class="btn btn-primary" onclick="Auth.verifyOtp()">Verify OTP →</button>`;
-  } else {
-    footButtons = `<button type="button" class="btn btn-outline" onclick="Modal.close()">Cancel</button><button type="button" class="btn btn-primary" onclick="Auth.resetPassword()">Reset Password ✓</button>`;
-  }
-
-  return `<div class="modal modal-md">
-    <div class="modal-head"><h3 class="modal-title">🔐 Password Reset</h3><button type="button" class="modal-close" onclick="Modal.close()">×</button></div>
-    <div style="padding:14px 26px;display:flex;align-items:center;gap:8px;background:var(--slate-50);border-bottom:1px solid var(--slate-100);">${stepBar}</div>
-    <div class="modal-body">${body}</div>
-    <div class="modal-foot">${footButtons}</div>
-  </div>`;
+  if (step === 1) footButtons = '<button type="button" class="btn btn-outline" onclick="Modal.close()">Cancel</button><button type="button" class="btn btn-primary" onclick="Auth.sendOtp()">Send OTP \u2192</button>';
+  else if (step === 2) footButtons = '<button type="button" class="btn btn-outline" onclick="Auth.resetToStep(1)">\u2190 Back</button><button type="button" class="btn btn-primary" onclick="Auth.verifyOtp()">Verify OTP \u2192</button>';
+  else footButtons = '<button type="button" class="btn btn-outline" onclick="Modal.close()">Cancel</button><button type="button" class="btn btn-primary" onclick="Auth.resetPassword()">Reset Password \u2713</button>';
+  return '<div class="modal modal-md"><div class="modal-head"><h3 class="modal-title">\uD83D\uDD10 Password Reset</h3><button type="button" class="modal-close" onclick="Modal.close()">\u00D7</button></div><div style="padding:14px 26px;display:flex;align-items:center;gap:8px;background:var(--slate-50);border-bottom:1px solid var(--slate-100);">' + stepBar + '</div><div class="modal-body">' + body + '</div><div class="modal-foot">' + footButtons + '</div></div>';
 };
 
 /* ================== AUTH ================== */
@@ -1316,8 +849,10 @@ window.Auth = {
 
   updateFormFields() {
     const role = this.currentRole;
+    const loginDept = document.getElementById('login-dept-field');
     const loginCompany = document.getElementById('login-company-field');
     const loginInst = document.getElementById('login-institution-field');
+    if (loginDept) loginDept.classList.toggle('hidden', role !== 'student');
     if (loginCompany) loginCompany.classList.toggle('hidden', role !== 'industry');
     if (loginInst) loginInst.classList.toggle('hidden', role !== 'academia');
     const suStudent = document.getElementById('signup-student-fields');
@@ -1347,7 +882,7 @@ window.Auth = {
       input.classList.remove('success');
       let hint = document.getElementById(hintId);
       if (!hint) { hint = document.createElement('div'); hint.id = hintId; hint.className = 'field-error'; input.parentNode.appendChild(hint); }
-      hint.innerHTML = `<span>⚠</span> This email is registered as <strong>${UI.esc(UserRegistry.roleLabel(existingRole))}</strong>. Cannot use as ${UI.esc(UserRegistry.roleLabel(this.currentRole))}.`;
+      hint.innerHTML = '<span>\u26A0</span> This email is registered as <strong>' + UI.esc(UserRegistry.roleLabel(existingRole)) + '</strong>. Cannot use as ' + UI.esc(UserRegistry.roleLabel(this.currentRole)) + '.';
       return false;
     }
     input.classList.remove('error');
@@ -1364,7 +899,7 @@ window.Auth = {
     const el = document.getElementById(inputId);
     if (!el) return;
     el.type = el.type === 'password' ? 'text' : 'password';
-    if (btn) btn.textContent = el.type === 'password' ? '👁' : '🙈';
+    if (btn) btn.textContent = el.type === 'password' ? '\uD83D\uDC41' : '\uD83D\uDE48';
   },
 
   checkPasswordMatch() {
@@ -1377,11 +912,11 @@ window.Auth = {
     msg.classList.remove('hidden');
     if (p === c) {
       msg.className = 'field-success';
-      msg.innerHTML = '<span>✓</span> Passwords match';
+      msg.innerHTML = '<span>\u2713</span> Passwords match';
       confirm.classList.remove('error'); confirm.classList.add('success');
     } else {
       msg.className = 'field-error';
-      msg.innerHTML = '<span>✕</span> Passwords do not match';
+      msg.innerHTML = '<span>\u2715</span> Passwords do not match';
       confirm.classList.remove('success'); confirm.classList.add('error');
     }
   },
@@ -1396,11 +931,11 @@ window.Auth = {
     msg.classList.remove('hidden');
     if (p === c) {
       msg.className = 'field-success';
-      msg.innerHTML = '<span>✓</span> Passwords match';
+      msg.innerHTML = '<span>\u2713</span> Passwords match';
       confirm.classList.remove('error'); confirm.classList.add('success');
     } else {
       msg.className = 'field-error';
-      msg.innerHTML = '<span>✕</span> Passwords do not match';
+      msg.innerHTML = '<span>\u2715</span> Passwords do not match';
       confirm.classList.remove('success'); confirm.classList.add('error');
     }
   },
@@ -1418,24 +953,29 @@ window.Auth = {
       if (!email || !password) { Toast.show('Please enter email and password', 'error'); return; }
       let department = '';
       const extras = {};
-      if (role === 'industry') {
+      if (role === 'student') {
+        const deptEl = document.getElementById('login-department');
+        department = deptEl ? deptEl.value : '';
+        if (!department) { Toast.show('Please select your field of study', 'warning'); return; }
+        extras.department = department;
+      } else if (role === 'industry') {
         extras.company = (document.getElementById('login-company').value || '').trim();
-      } else if (role === 'academia') {
+      } else {
         extras.institution = (document.getElementById('login-institution').value || '').trim();
       }
-      const { token, user } = await API.call('/api/auth/login', {
+      const res = await API.call('/api/auth/login', {
         method: 'POST', auth: false,
         body: { email, password, role },
       });
-      API.setToken(token);
-      State.user = user;
-      State.department = user.department || department || 'CSE';
-      Storage.set('user', user);
+      API.setToken(res.token);
+      State.user = res.user;
+      State.department = res.user.department || department || 'CSE';
+      Storage.set('user', res.user);
       Storage.set('department', State.department);
-      UserRegistry.register(email, user.role, user.name, password, user.extras || {});
+      UserRegistry.register(email, res.user.role, res.user.name, password, res.user.extras || {});
       await App.hydrateFromBackend();
       this.showApp();
-      Toast.show('Welcome, ' + user.name + '!', 'success');
+      Toast.show('Welcome, ' + res.user.name + '!', 'success');
     } catch (err) {
       Toast.show(err.message, 'error');
     } finally {
@@ -1488,14 +1028,14 @@ window.Auth = {
         extras.website = document.getElementById('signup-academia-website').value;
       }
 
-      const { token, user } = await API.call('/api/auth/signup', {
+      const res = await API.call('/api/auth/signup', {
         method: 'POST', auth: false,
         body: { name, email, phone, password, role, department, extras },
       });
-      API.setToken(token);
-      State.user = user;
-      State.department = user.department || department || 'CSE';
-      Storage.set('user', user);
+      API.setToken(res.token);
+      State.user = res.user;
+      State.department = res.user.department || department || 'CSE';
+      Storage.set('user', res.user);
       Storage.set('department', State.department);
       UserRegistry.register(email, role, name, password, extras);
       await App.hydrateFromBackend();
@@ -1579,7 +1119,7 @@ window.Auth = {
     const hour = new Date().getHours();
     const greet = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
     const el = document.getElementById('student-greeting');
-    if (el) el.innerHTML = `${greet}, ${State.user.name.split(' ')[0]} <span class="badge-verified">✓ Verified</span>`;
+    if (el) el.innerHTML = greet + ', ' + State.user.name.split(' ')[0] + ' <span class="badge-verified">\u2713 Verified</span>';
 
     if (State.user.role === 'student' && Departments[State.department]) {
       const d = Departments[State.department];
@@ -1591,14 +1131,14 @@ window.Auth = {
         if (extras.currentYear) parts.push(extras.currentYear);
         else if (extras.gradYear) parts.push('Batch of ' + extras.gradYear);
         if (extras.institution) parts.push(extras.institution);
-        sub.textContent = parts.join(' · ');
+        sub.textContent = parts.join(' \u00B7 ');
       }
       const navSub = document.getElementById('navbar-dept-sub');
-      if (navSub) navSub.textContent = (extras.institution || d.name) + ' · Placement';
+      if (navSub) navSub.textContent = (extras.institution || d.name) + ' \u00B7 Placement';
       const st = document.getElementById('skills-card-title');
-      if (st) st.textContent = '⚙ ' + d.short + ' Skills';
+      if (st) st.textContent = '\u2699 ' + d.short + ' Skills';
       const it = document.getElementById('internships-card-title');
-      if (it) it.textContent = '✨ AI Recommended ' + d.short + ' Internships';
+      if (it) it.textContent = '\u2728 AI Recommended ' + d.short + ' Internships';
     }
     if (State.user.role === 'academia') {
       const entry = UserRegistry.get(State.user.email);
@@ -1608,7 +1148,7 @@ window.Auth = {
         const parts = [extras.institution || 'Institution'];
         parts.push('Placement Cell');
         if (extras.designation) parts.push(extras.designation);
-        sub.textContent = parts.join(' · ');
+        sub.textContent = parts.join(' \u00B7 ');
       }
     }
     App.applyRoleRestrictions(State.user.role);
@@ -1627,10 +1167,7 @@ window.Auth = {
     try { Modal.open('forgotPasswordModal'); } catch (e) { Toast.show('Could not open reset dialog', 'error'); }
   },
 
-  renderForgotStep() {
-    Modal.close();
-    setTimeout(() => Modal.open('forgotPasswordModal'), 50);
-  },
+  renderForgotStep() { Modal.close(); setTimeout(() => Modal.open('forgotPasswordModal'), 50); },
 
   resetToStep(step) {
     State.reset.step = step;
@@ -1645,7 +1182,6 @@ window.Auth = {
     const email = (emailInput ? emailInput.value : '').trim();
     if (!email) { Toast.show('Please enter your email', 'warning'); return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { Toast.show('Invalid email', 'warning'); return; }
-
     const btn = document.querySelector('#modal-root .modal-foot .btn-primary');
     if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
     try {
@@ -1658,18 +1194,18 @@ window.Auth = {
       State.reset.devOtp = res.devOtp || '';
       State.reset.step = 2;
       State.reset.attempts = 0;
-      Toast.show(`OTP sent via ${res.channel.toUpperCase()} to ${res.target}`, 'success');
+      Toast.show('OTP sent via ' + res.channel.toUpperCase() + ' to ' + res.target, 'success');
       Modal.close();
       setTimeout(() => Modal.open('forgotPasswordModal'), 80);
     } catch (err) {
       if (errEl) {
         errEl.classList.remove('hidden');
         errEl.className = 'field-error';
-        errEl.innerHTML = `<span>⚠</span> ${UI.esc(err.message)}`;
+        errEl.innerHTML = '<span>\u26A0</span> ' + UI.esc(err.message);
       }
       Toast.show(err.message, 'error');
     } finally {
-      if (btn) { btn.disabled = false; btn.textContent = 'Send OTP →'; }
+      if (btn) { btn.disabled = false; btn.textContent = 'Send OTP \u2192'; }
     }
   },
 
@@ -1679,7 +1215,7 @@ window.Auth = {
     input.classList.toggle('filled', !!val);
     const idx = parseInt(input.dataset.idx, 10);
     if (val && idx < 5) {
-      const next = document.querySelector(`#otp-grid .otp-input[data-idx="${idx + 1}"]`);
+      const next = document.querySelector('#otp-grid .otp-input[data-idx="' + (idx + 1) + '"]');
       if (next) next.focus();
     }
     const all = document.querySelectorAll('#otp-grid .otp-input');
@@ -1691,15 +1227,15 @@ window.Auth = {
   onOtpKey(e, input) {
     const idx = parseInt(input.dataset.idx, 10);
     if (e.key === 'Backspace' && !input.value && idx > 0) {
-      const prev = document.querySelector(`#otp-grid .otp-input[data-idx="${idx - 1}"]`);
+      const prev = document.querySelector('#otp-grid .otp-input[data-idx="' + (idx - 1) + '"]');
       if (prev) { prev.focus(); prev.value = ''; prev.classList.remove('filled'); }
     }
     if (e.key === 'ArrowLeft' && idx > 0) {
-      const p = document.querySelector(`#otp-grid .otp-input[data-idx="${idx - 1}"]`);
+      const p = document.querySelector('#otp-grid .otp-input[data-idx="' + (idx - 1) + '"]');
       if (p) p.focus();
     }
     if (e.key === 'ArrowRight' && idx < 5) {
-      const n = document.querySelector(`#otp-grid .otp-input[data-idx="${idx + 1}"]`);
+      const n = document.querySelector('#otp-grid .otp-input[data-idx="' + (idx + 1) + '"]');
       if (n) n.focus();
     }
   },
@@ -1722,7 +1258,7 @@ window.Auth = {
     inputs.forEach(i => combined += i.value);
     const errEl = document.getElementById('otp-error');
     if (combined.length !== 6) {
-      if (errEl) { errEl.classList.remove('hidden'); errEl.className = 'field-error'; errEl.innerHTML = '<span>⚠</span> Please enter all 6 digits'; }
+      if (errEl) { errEl.classList.remove('hidden'); errEl.className = 'field-error'; errEl.innerHTML = '<span>\u26A0</span> Please enter all 6 digits'; }
       return;
     }
     try {
@@ -1739,7 +1275,7 @@ window.Auth = {
       State.reset.attempts++;
       if (errEl) {
         errEl.classList.remove('hidden'); errEl.className = 'field-error';
-        errEl.innerHTML = `<span>✕</span> ${UI.esc(err.message)}`;
+        errEl.innerHTML = '<span>\u2715</span> ' + UI.esc(err.message);
       }
       Toast.show(err.message, 'error');
       const grid = document.getElementById('otp-grid');
@@ -1770,7 +1306,7 @@ window.Auth = {
       if (inputs[0]) inputs[0].focus();
       let remaining = 30;
       if (link) { link.dataset.disabled = 'true'; link.style.color = '#94a3b8'; link.style.cursor = 'not-allowed'; link.style.textDecoration = 'none'; }
-      if (timer) { timer.style.display = 'inline'; timer.textContent = `Resend in ${remaining}s`; }
+      if (timer) { timer.style.display = 'inline'; timer.textContent = 'Resend in ' + remaining + 's'; }
       if (State.reset.resendTimer) clearInterval(State.reset.resendTimer);
       State.reset.resendTimer = setInterval(() => {
         remaining--;
@@ -1778,7 +1314,7 @@ window.Auth = {
           clearInterval(State.reset.resendTimer); State.reset.resendTimer = null;
           if (link) { link.dataset.disabled = 'false'; link.style.color = '#1d4ed8'; link.style.cursor = 'pointer'; link.style.textDecoration = 'underline'; }
           if (timer) timer.style.display = 'none';
-        } else if (timer) timer.textContent = `Resend in ${remaining}s`;
+        } else if (timer) timer.textContent = 'Resend in ' + remaining + 's';
       }, 1000);
     } catch (err) { Toast.show(err.message, 'error'); }
   },
@@ -1791,7 +1327,7 @@ window.Auth = {
     const confirm = (confirmEl ? confirmEl.value : '') || '';
     if (pwd.length < 6) { Toast.show('Password must be at least 6 characters', 'warning'); return; }
     if (pwd !== confirm) {
-      if (matchMsg) { matchMsg.classList.remove('hidden'); matchMsg.className = 'field-error'; matchMsg.innerHTML = '<span>✕</span> Passwords do not match'; }
+      if (matchMsg) { matchMsg.classList.remove('hidden'); matchMsg.className = 'field-error'; matchMsg.innerHTML = '<span>\u2715</span> Passwords do not match'; }
       return;
     }
     try {
@@ -1822,11 +1358,11 @@ window.Quiz = {
       let cls = 'quiz-progress-seg';
       if (i < Quiz.answers.length) cls += Quiz.answers[i] === quiz[i].correct ? ' correct' : ' wrong';
       else if (i === Quiz.current) cls += ' active';
-      return `<div class="${cls}"></div>`;
+      return '<div class="' + cls + '"></div>';
     }).join('');
     const letters = ['A', 'B', 'C', 'D'];
-    const options = q.options.map((opt, i) => `<button type="button" class="quiz-option" onclick="Quiz.answer(${i})" data-idx="${i}"><span class="quiz-option-letter">${letters[i]}</span><span>${UI.esc(opt)}</span></button>`).join('');
-    body.innerHTML = `<div class="quiz-progress">${progress}</div><div class="quiz-question">Q${this.current + 1}. ${UI.esc(q.q)}</div><div class="quiz-options">${options}</div>`;
+    const options = q.options.map((opt, i) => '<button type="button" class="quiz-option" onclick="Quiz.answer(' + i + ')" data-idx="' + i + '"><span class="quiz-option-letter">' + letters[i] + '</span><span>' + UI.esc(opt) + '</span></button>').join('');
+    body.innerHTML = '<div class="quiz-progress">' + progress + '</div><div class="quiz-question">Q' + (this.current + 1) + '. ' + UI.esc(q.q) + '</div><div class="quiz-options">' + options + '</div>';
   },
   answer(idx) {
     const quiz = (Departments[State.department] ? Departments[State.department].quiz : Departments.CSE.quiz);
@@ -1847,16 +1383,8 @@ window.Quiz = {
     const total = quiz.length;
     const pct = Math.round((this.score / total) * 100);
     const grade = pct >= 80 ? 'A' : pct >= 60 ? 'B' : pct >= 40 ? 'C' : 'D';
-    const badge = pct >= 80 ? '🥇 Expert' : pct >= 60 ? '🥈 Advanced' : pct >= 40 ? '🥉 Intermediate' : '📚 Beginner';
-    body.innerHTML = `<div style="text-align:center;padding:20px 0;">
-      <div style="font-size:64px;margin-bottom:12px;">${pct >= 60 ? '🎉' : '💪'}</div>
-      <h3 style="font-size:22px;font-weight:800;color:var(--slate-900);margin-bottom:6px;">${this.score} / ${total} Correct</h3>
-      <p style="font-size:14px;color:var(--slate-500);margin-bottom:20px;">${badge} · Grade ${grade}</p>
-      <div style="background:var(--slate-50);border-radius:12px;padding:20px;margin-bottom:16px;">
-        <div style="font-size:40px;font-weight:900;color:var(--cse-700);">${pct}%</div>
-        <div style="font-size:12px;color:var(--slate-500);text-transform:uppercase;font-weight:700;margin-top:4px;">Score</div>
-      </div>
-    </div>`;
+    const badge = pct >= 80 ? '\uD83E\uDD47 Expert' : pct >= 60 ? '\uD83E\uDD48 Advanced' : pct >= 40 ? '\uD83E\uDD49 Intermediate' : '\uD83D\uDCDA Beginner';
+    body.innerHTML = '<div style="text-align:center;padding:20px 0;"><div style="font-size:64px;margin-bottom:12px;">' + (pct >= 60 ? '\uD83C\uDF89' : '\uD83D\uDCAA') + '</div><h3 style="font-size:22px;font-weight:800;color:var(--slate-900);margin-bottom:6px;">' + this.score + ' / ' + total + ' Correct</h3><p style="font-size:14px;color:var(--slate-500);margin-bottom:20px;">' + badge + ' \u00B7 Grade ' + grade + '</p><div style="background:var(--slate-50);border-radius:12px;padding:20px;margin-bottom:16px;"><div style="font-size:40px;font-weight:900;color:var(--cse-700);">' + pct + '%</div><div style="font-size:12px;color:var(--slate-500);text-transform:uppercase;font-weight:700;margin-top:4px;">Score</div></div></div>';
     if (pct >= 60) Toast.show('Excellent!', 'success');
   },
 };
@@ -1868,7 +1396,7 @@ window.Compare = {
     State.compareList = [];
     const btn = document.getElementById('compare-toggle-btn');
     if (btn) {
-      btn.textContent = State.compareMode ? '✖ Exit Compare' : '⚖️ Compare';
+      btn.textContent = State.compareMode ? '\u2716 Exit Compare' : '\u2696\uFE0F Compare';
       btn.classList.toggle('btn-primary', State.compareMode);
       btn.classList.toggle('btn-outline', !State.compareMode);
     }
@@ -1891,13 +1419,7 @@ window.Compare = {
       const c = State.candidates.filter(x => x.id === id)[0];
       return c ? (c.name.split(' ')[1] || c.name) : '';
     }).join(', ');
-    root.innerHTML = `<div class="compare-bar">
-      <span class="compare-bar-text">📊 ${State.compareList.length}: ${UI.esc(names)}</span>
-      <div class="compare-bar-actions">
-        <button type="button" class="compare-btn ghost" onclick="Compare.clear()">Clear</button>
-        <button type="button" class="compare-btn primary" onclick="Compare.open()">Compare →</button>
-      </div>
-    </div>`;
+    root.innerHTML = '<div class="compare-bar"><span class="compare-bar-text">\uD83D\uDCCA ' + State.compareList.length + ': ' + UI.esc(names) + '</span><div class="compare-bar-actions"><button type="button" class="compare-btn ghost" onclick="Compare.clear()">Clear</button><button type="button" class="compare-btn primary" onclick="Compare.open()">Compare \u2192</button></div></div>';
   },
   clear() { State.compareList = []; Render.candidates(); this.renderBar(); },
   open() {
@@ -1925,37 +1447,26 @@ window.Tour = {
     if (!target) { this.next(); return; }
     const rect = target.getBoundingClientRect();
     const pad = 8;
-    const hl = `left:${rect.left - pad}px;top:${rect.top - pad}px;width:${rect.width + pad * 2}px;height:${rect.height + pad * 2}px;`;
+    const hl = 'left:' + (rect.left - pad) + 'px;top:' + (rect.top - pad) + 'px;width:' + (rect.width + pad * 2) + 'px;height:' + (rect.height + pad * 2) + 'px;';
     let tipTop = rect.bottom + 20;
     const tipLeft = Math.max(20, Math.min(rect.left, window.innerWidth - 360));
     if (tipTop > window.innerHeight - 220) tipTop = rect.top - 220;
     if (tipTop < 20) tipTop = 20;
     const total = this.steps.length;
-    root.innerHTML = `<div class="tour-overlay"></div>
-      <div class="tour-highlight" style="${hl}"></div>
-      <div class="tour-tip" style="left:${tipLeft}px;top:${tipTop}px;">
-        <div class="tour-step">Step ${this.currentStep + 1} of ${total}</div>
-        <div class="tour-title">${UI.esc(step.title)}</div>
-        <div class="tour-text">${UI.esc(step.text)}</div>
-        <div class="tour-actions">
-          <button type="button" class="btn btn-outline btn-sm" onclick="Tour.skip()">Skip</button>
-          ${this.currentStep > 0 ? '<button type="button" class="btn btn-outline btn-sm" onclick="Tour.prev()">Back</button>' : ''}
-          <button type="button" class="btn btn-primary btn-sm" onclick="Tour.next()">${this.currentStep === total - 1 ? 'Finish' : 'Next →'}</button>
-        </div>
-      </div>`;
+    root.innerHTML = '<div class="tour-overlay"></div><div class="tour-highlight" style="' + hl + '"></div><div class="tour-tip" style="left:' + tipLeft + 'px;top:' + tipTop + 'px;"><div class="tour-step">Step ' + (this.currentStep + 1) + ' of ' + total + '</div><div class="tour-title">' + UI.esc(step.title) + '</div><div class="tour-text">' + UI.esc(step.text) + '</div><div class="tour-actions"><button type="button" class="btn btn-outline btn-sm" onclick="Tour.skip()">Skip</button>' + (this.currentStep > 0 ? '<button type="button" class="btn btn-outline btn-sm" onclick="Tour.prev()">Back</button>' : '') + '<button type="button" class="btn btn-primary btn-sm" onclick="Tour.next()">' + (this.currentStep === total - 1 ? 'Finish' : 'Next \u2192') + '</button></div></div>';
     try { target.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {}
   },
   next() { if (this.currentStep >= this.steps.length - 1) { this.end(); return; } this.currentStep++; this.show(); },
   prev() { if (this.currentStep > 0) { this.currentStep--; this.show(); } },
   skip() { this.end(); },
-  end() { document.getElementById('tour-root').innerHTML = ''; Storage.set('tour_done', true); Toast.show('Tour complete! 🎉', 'success'); },
+  end() { document.getElementById('tour-root').innerHTML = ''; Storage.set('tour_done', true); Toast.show('Tour complete! \uD83C\uDF89', 'success'); },
 };
 
 /* ================== CHAT ================== */
 window.Chat = {
   open: false, activeThread: null, threads: {}, showEmoji: false,
-  emojis: ['😀', '😂', '😍', '👍', '🎉', '🔥', '💯', '🙏', '👏', '❤️', '😊', '🤝', '✨', '✅', '💼', '🎓'],
-  quickReplies: ['Thanks!', 'Got it', 'Will do', 'Let me check', 'Sounds great', '👍'],
+  emojis: ['\uD83D\uDE00', '\uD83D\uDE02', '\uD83D\uDE0D', '\uD83D\uDC4D', '\uD83C\uDF89', '\uD83D\uDD25', '\uD83D\uDCAF', '\uD83D\uDE4F', '\uD83D\uDC4F', '\u2764\uFE0F', '\uD83D\uDE0A', '\uD83E\uDD1D', '\u2728', '\u2705', '\uD83D\uDCBC', '\uD83C\uDF93'],
+  quickReplies: ['Thanks!', 'Got it', 'Will do', 'Let me check', 'Sounds great', '\uD83D\uDC4D'],
   seedContacts() {
     const role = State.user ? State.user.role : 'student';
     if (role === 'student') return [
@@ -2006,45 +1517,20 @@ window.Chat = {
       const t = self.threads[k]; const last = t.messages[t.messages.length - 1];
       const unread = t.messages.filter(m => m.unread).length;
       const isActive = self.activeThread === t.contact.id;
-      return `<div class="chat-thread ${isActive ? 'active' : ''}" onclick="Chat.selectThread('${t.contact.id}')">
-        ${UI.avatar(t.contact.initials, t.contact.color)}
-        <div class="chat-thread-info"><div class="chat-thread-name">${UI.esc(t.contact.name)}</div><div class="chat-thread-preview">${UI.esc(last ? last.text : 'No messages')}</div></div>
-        ${unread ? '<span class="chat-thread-dot"></span>' : ''}
-      </div>`;
+      return '<div class="chat-thread ' + (isActive ? 'active' : '') + '" onclick="Chat.selectThread(\'' + t.contact.id + '\')">' + UI.avatar(t.contact.initials, t.contact.color) + '<div class="chat-thread-info"><div class="chat-thread-name">' + UI.esc(t.contact.name) + '</div><div class="chat-thread-preview">' + UI.esc(last ? last.text : 'No messages') + '</div></div>' + (unread ? '<span class="chat-thread-dot"></span>' : '') + '</div>';
     }).join('');
     let convHtml = '';
     if (this.activeThread && this.threads[this.activeThread]) {
       const t = this.threads[this.activeThread];
-      const msgs = t.messages.map(m => `<div class="chat-msg ${m.from}">${UI.esc(m.text)}<span class="chat-msg-time">${UI.esc(m.time)}</span></div>`).join('');
-      const emojiBar = this.showEmoji ? `<div class="chat-emoji-bar">${this.emojis.map(e => `<span class="chat-emoji" onclick="Chat.insertEmoji('${e}')">${e}</span>`).join('')}</div>` : '';
-      const quickBar = !this.showEmoji ? `<div style="padding:6px 12px 0;display:flex;gap:6px;flex-wrap:wrap;background:#fff;">${this.quickReplies.map(q => `<button type="button" class="btn btn-outline btn-xs" onclick="Chat.sendQuick('${q}')">${q}</button>`).join('')}</div>` : '';
-      convHtml = `<div class="chat-conv">
-        <div class="chat-conv-head">
-          <span class="chat-back" onclick="Chat.selectThread(null)">←</span>
-          ${UI.avatar(t.contact.initials, t.contact.color)}
-          <div style="flex:1;min-width:0;"><div class="chat-conv-name">${UI.esc(t.contact.name)}</div><div class="chat-conv-status">${t.contact.online ? '● Online' : '○ Offline'}</div></div>
-          <button type="button" class="btn btn-ghost btn-xs" onclick="Chat.clearHistory()">🗑</button>
-        </div>
-        <div class="chat-msgs" id="chat-msgs">${msgs}</div>
-        ${emojiBar}${quickBar}
-        <div class="chat-input-row">
-          <button type="button" class="chat-attach" onclick="Chat.toggleEmoji()">😊</button>
-          <button type="button" class="chat-attach" onclick="Chat.attachFile()">📎</button>
-          <input class="chat-input" id="chat-input" placeholder="Type a message..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();Chat.send();}">
-          <button type="button" class="chat-send" onclick="Chat.send()">➤</button>
-        </div>
-      </div>`;
+      const msgs = t.messages.map(m => '<div class="chat-msg ' + m.from + '">' + UI.esc(m.text) + '<span class="chat-msg-time">' + UI.esc(m.time) + '</span></div>').join('');
+      const emojiBar = this.showEmoji ? '<div class="chat-emoji-bar">' + this.emojis.map(e => '<span class="chat-emoji" onclick="Chat.insertEmoji(\'' + e + '\')">' + e + '</span>').join('') + '</div>' : '';
+      const quickBar = !this.showEmoji ? '<div style="padding:6px 12px 0;display:flex;gap:6px;flex-wrap:wrap;background:#fff;">' + this.quickReplies.map(q => '<button type="button" class="btn btn-outline btn-xs" onclick="Chat.sendQuick(\'' + q + '\')">' + q + '</button>').join('') + '</div>' : '';
+      convHtml = '<div class="chat-conv"><div class="chat-conv-head"><span class="chat-back" onclick="Chat.selectThread(null)">\u2190</span>' + UI.avatar(t.contact.initials, t.contact.color) + '<div style="flex:1;min-width:0;"><div class="chat-conv-name">' + UI.esc(t.contact.name) + '</div><div class="chat-conv-status">' + (t.contact.online ? '\u25CF Online' : '\u25CB Offline') + '</div></div><button type="button" class="btn btn-ghost btn-xs" onclick="Chat.clearHistory()">\uD83D\uDDD1</button></div><div class="chat-msgs" id="chat-msgs">' + msgs + '</div>' + emojiBar + quickBar + '<div class="chat-input-row"><button type="button" class="chat-attach" onclick="Chat.toggleEmoji()">\uD83D\uDE0A</button><button type="button" class="chat-attach" onclick="Chat.attachFile()">\uD83D\uDCCE</button><input class="chat-input" id="chat-input" placeholder="Type a message..." onkeydown="if(event.key===\'Enter\'&&!event.shiftKey){event.preventDefault();Chat.send();}"><button type="button" class="chat-send" onclick="Chat.send()">\u27A4</button></div></div>';
     } else {
-      convHtml = `<div class="chat-empty"><div style="font-size:44px;margin-bottom:12px;">💬</div><div style="font-weight:700;color:var(--slate-700);margin-bottom:4px;">Your Messages</div>Select a conversation to start chatting</div>`;
+      convHtml = '<div class="chat-empty"><div style="font-size:44px;margin-bottom:12px;">\uD83D\uDCAC</div><div style="font-weight:700;color:var(--slate-700);margin-bottom:4px;">Your Messages</div>Select a conversation to start chatting</div>';
     }
-    const sidebarHtml = !this.activeThread ? `<div class="chat-sidebar" id="chat-sidebar"><div class="chat-tab active">All Chats</div></div>` : '';
-    root.innerHTML = `<div class="chat-panel">
-      <div class="chat-head">
-        <div class="chat-head-title">💬 Messages <span style="font-size:11px;font-weight:600;opacity:.7;">(${threadKeys.length})</span></div>
-        <div class="chat-head-actions"><button type="button" class="chat-head-btn" onclick="Chat.closeAll()">⨯</button><button type="button" class="chat-head-btn" onclick="Chat.close()">✕</button></div>
-      </div>
-      <div class="chat-body">${sidebarHtml}<div class="chat-list">${this.activeThread ? '' : `<div class="chat-thread-list">${threadList}</div>`}${convHtml}</div></div>
-    </div>`;
+    const sidebarHtml = !this.activeThread ? '<div class="chat-sidebar" id="chat-sidebar"><div class="chat-tab active">All Chats</div></div>' : '';
+    root.innerHTML = '<div class="chat-panel"><div class="chat-head"><div class="chat-head-title">\uD83D\uDCAC Messages <span style="font-size:11px;font-weight:600;opacity:.7;">(' + threadKeys.length + ')</span></div><div class="chat-head-actions"><button type="button" class="chat-head-btn" onclick="Chat.closeAll()">\u2A2F</button><button type="button" class="chat-head-btn" onclick="Chat.close()">\u2715</button></div></div><div class="chat-body">' + sidebarHtml + '<div class="chat-list">' + (this.activeThread ? '' : '<div class="chat-thread-list">' + threadList + '</div>') + convHtml + '</div></div></div>';
     setTimeout(() => { const m = document.getElementById('chat-msgs'); if (m) m.scrollTop = m.scrollHeight; }, 50);
   },
   selectThread(id) {
@@ -2062,10 +1548,10 @@ window.Chat = {
     const text = inp.value.trim(); if (!text || !this.activeThread) return;
     const t = this.threads[this.activeThread];
     const now = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-    t.messages.push({ from: 'out', text, time: now });
+    t.messages.push({ from: 'out', text: text, time: now });
     inp.value = ''; this.save(); this.render();
     setTimeout(() => {
-      const replies = ['Got it, thanks!', 'Sure, I will get back to you.', 'That sounds good.', 'Let me check and confirm.', '👍', 'Great question!', 'Thanks for reaching out!', 'Noted. Will follow up.', 'Yes, absolutely!', 'Could you share more details?'];
+      const replies = ['Got it, thanks!', 'Sure, I will get back to you.', 'That sounds good.', 'Let me check and confirm.', '\uD83D\uDC4D', 'Great question!', 'Thanks for reaching out!', 'Noted. Will follow up.', 'Yes, absolutely!', 'Could you share more details?'];
       t.messages.push({ from: 'them', text: replies[Math.floor(Math.random() * replies.length)], time: now, unread: false });
       this.save(); this.render(); this.updateBadge();
     }, 1200 + Math.random() * 1500);
@@ -2079,7 +1565,7 @@ window.Chat = {
 window.Realtime = {
   start() {
     const scroll = document.getElementById('ticker-scroll'); if (!scroll) return;
-    const content = State.ticker.map(t => `<span>${UI.esc(t)}</span>`).join('');
+    const content = State.ticker.map(t => '<span>' + UI.esc(t) + '</span>').join('');
     scroll.innerHTML = content + content;
   },
   pushEvent(text) { State.ticker.unshift(text); if (State.ticker.length > 12) State.ticker.pop(); this.start(); },
@@ -2088,9 +1574,9 @@ window.Realtime = {
     State.wsTimer = setInterval(() => {
       if (!State.user || !State.candidates.length) return;
       const events = [
-        `🎉 ${State.candidates[Math.floor(Math.random() * State.candidates.length)].name} was just shortlisted`,
-        `✨ New internship posted: ${State.internships[Math.floor(Math.random() * State.internships.length)].title}`,
-        `📈 Placement rate updated: ${82 + Math.floor(Math.random() * 3)}%`,
+        '\uD83C\uDF89 ' + State.candidates[Math.floor(Math.random() * State.candidates.length)].name + ' was just shortlisted',
+        '\u2728 New internship posted: ' + State.internships[Math.floor(Math.random() * State.internships.length)].title,
+        '\uD83D\uDCC8 Placement rate updated: ' + (82 + Math.floor(Math.random() * 3)) + '%',
       ];
       this.pushEvent(events[Math.floor(Math.random() * events.length)]);
     }, 8000);
@@ -2102,12 +1588,10 @@ window.App = {
   async hydrateFromBackend() {
     if (!State.user) return;
     try {
-      const [skills, apps, notifs, docs] = await Promise.all([
-        API.call('/api/skills').catch(() => []),
-        API.call('/api/applications').catch(() => []),
-        API.call('/api/notifications').catch(() => []),
-        API.call('/api/documents').catch(() => []),
-      ]);
+      const skills = await API.call('/api/skills').catch(() => []);
+      const apps = await API.call('/api/applications').catch(() => []);
+      const notifs = await API.call('/api/notifications').catch(() => []);
+      const docs = await API.call('/api/documents').catch(() => []);
       State.skills = (skills || []).map(s => ({ _id: s._id, id: s._id, name: s.name, level: s.level, category: s.category }));
       State.applications = apps || [];
       State.notifications = notifs || [];
@@ -2198,7 +1682,7 @@ window.App = {
     this.bindEvents();
     this.setupNetworkListeners();
     Auth.init();
-    console.log('%c✅ Talent Bridge v9 — Backend connected', 'color:#1e3a8a;font-weight:bold;');
+    console.log('%c\u2705 Talent Bridge v9 \u2014 Backend connected', 'color:#1e3a8a;font-weight:bold;');
   },
 
   bindEvents() {
@@ -2242,12 +1726,12 @@ window.App = {
   toggleTheme() {
     State.theme = State.theme === 'light' ? 'dark' : 'light';
     this.applyTheme(); Storage.set('theme', State.theme);
-    const icon = document.getElementById('theme-icon'); if (icon) icon.textContent = State.theme === 'dark' ? '☀️' : '🌙';
-    Toast.show((State.theme === 'dark' ? '🌙 Dark' : '☀️ Light') + ' mode', 'info');
+    const icon = document.getElementById('theme-icon'); if (icon) icon.textContent = State.theme === 'dark' ? '\u2600\uFE0F' : '\uD83C\uDF19';
+    Toast.show((State.theme === 'dark' ? '\uD83C\uDF19 Dark' : '\u2600\uFE0F Light') + ' mode', 'info');
   },
   applyTheme() {
     document.documentElement.setAttribute('data-theme', State.theme);
-    const icon = document.getElementById('theme-icon'); if (icon) icon.textContent = State.theme === 'dark' ? '☀️' : '🌙';
+    const icon = document.getElementById('theme-icon'); if (icon) icon.textContent = State.theme === 'dark' ? '\u2600\uFE0F' : '\uD83C\uDF19';
   },
   applyRoleRestrictions(role) {
     document.querySelectorAll('.navbar-tabs .nav-tab').forEach(tab => {
@@ -2260,9 +1744,6 @@ window.App = {
       tab.style.display = r === role ? '' : 'none';
     });
     const mt = document.querySelector('.mobile-tabs'); if (mt) mt.style.display = 'none';
-    // Document Vault is a student-only feature — hide it for industry/academia accounts.
-    const docVaultBtn = document.getElementById('doc-vault-btn');
-    if (docVaultBtn) docVaultBtn.style.display = role === 'student' ? '' : 'none';
   },
   setAppView(view, btn) {
     State.appView = view;
@@ -2309,18 +1790,18 @@ window.App = {
   setNotifFilter(f) { State.notifFilter = f; Modal.close(); setTimeout(() => Modal.open('notificationsModal'), 50); },
 
   openIndustryStat(type) {
-    const titles = { active: '📢 Active Postings', applicants: '👥 Total Applicants', shortlisted: '⭐ Shortlisted Candidates', hired: '🎉 Hired This Year' };
+    const titles = { active: '\uD83D\uDCE2 Active Postings', applicants: '\uD83D\uDC65 Total Applicants', shortlisted: '\u2B50 Shortlisted Candidates', hired: '\uD83C\uDF89 Hired This Year' };
     let body = '';
     if (type === 'active') {
       body = State.myPostings.length
-        ? State.myPostings.map(p => `<div class="list-item"><div class="item-row"><div class="item-main"><div class="item-title-row"><span class="item-title">${UI.esc(p.title)}</span>${UI.statusBadge('success', p.status)}</div><div class="item-meta">${UI.esc(p.location)} · ${UI.esc(p.type)}</div></div><div class="item-side"><div class="match-badge">${p.applicants} applicants</div></div></div></div>`).join('')
-        : UI.empty('No active postings', '📢');
+        ? State.myPostings.map(p => '<div class="list-item"><div class="item-row"><div class="item-main"><div class="item-title-row"><span class="item-title">' + UI.esc(p.title) + '</span>' + UI.statusBadge('success', p.status) + '</div><div class="item-meta">' + UI.esc(p.location) + ' \u00B7 ' + UI.esc(p.type) + '</div></div><div class="item-side"><div class="match-badge">' + p.applicants + ' applicants</div></div></div></div>').join('')
+        : UI.empty('No active postings', '\uD83D\uDCE2');
     } else if (type === 'applicants') {
-      body = State.candidates.slice(0, 6).map(c => `<div class="list-item"><div class="item-row" style="align-items:center;"><div class="avatar-row">${UI.avatar(c.initials, c.color)}<div><div class="item-title">${UI.esc(c.name)}</div><div class="item-meta" style="margin:0;">${UI.esc(c.degree)}</div></div></div><div class="item-side"><button type="button" class="apply-link" onclick="Modal.close(); setTimeout(function(){ Modal.open('profileModal',${c.id}); },50);">View →</button></div></div></div>`).join('');
+      body = State.candidates.slice(0, 6).map(c => '<div class="list-item"><div class="item-row" style="align-items:center;"><div class="avatar-row">' + UI.avatar(c.initials, c.color) + '<div><div class="item-title">' + UI.esc(c.name) + '</div><div class="item-meta" style="margin:0;">' + UI.esc(c.degree) + '</div></div></div><div class="item-side"><button type="button" class="apply-link" onclick="Modal.close(); setTimeout(function(){ Modal.open(\'profileModal\',' + c.id + '); },50);">View \u2192</button></div></div></div>').join('');
     } else if (type === 'shortlisted') {
-      body = State.candidates.slice(1, 5).map(c => `<div class="list-item"><div class="item-row" style="align-items:center;"><div class="avatar-row">${UI.avatar(c.initials, c.color)}<div><div class="item-title">${UI.esc(c.name)}</div><div class="item-meta" style="margin:0;">${UI.esc(c.degree)} · ${UI.esc(c.institute)}</div></div></div><div class="item-side">${UI.stars(c.rating)}</div></div></div>`).join('');
+      body = State.candidates.slice(1, 5).map(c => '<div class="list-item"><div class="item-row" style="align-items:center;"><div class="avatar-row">' + UI.avatar(c.initials, c.color) + '<div><div class="item-title">' + UI.esc(c.name) + '</div><div class="item-meta" style="margin:0;">' + UI.esc(c.degree) + ' \u00B7 ' + UI.esc(c.institute) + '</div></div></div><div class="item-side">' + UI.stars(c.rating) + '</div></div></div>').join('');
     } else {
-      body = State.candidates.slice(0, 4).map(c => `<div class="list-item"><div class="item-row" style="align-items:center;"><div class="avatar-row">${UI.avatar(c.initials, c.color)}<div><div class="item-title">${UI.esc(c.name)}</div><div class="item-meta" style="margin:0;">Hired · ${UI.esc(c.degree)}</div></div></div></div></div>`).join('');
+      body = State.candidates.slice(0, 4).map(c => '<div class="list-item"><div class="item-row" style="align-items:center;"><div class="avatar-row">' + UI.avatar(c.initials, c.color) + '<div><div class="item-title">' + UI.esc(c.name) + '</div><div class="item-meta" style="margin:0;">Hired \u00B7 ' + UI.esc(c.degree) + '</div></div></div></div></div>').join('');
     }
     Modal.open('genericListModal', titles[type], body);
   },
@@ -2328,16 +1809,16 @@ window.App = {
   openAcademiaStat(type) {
     let body = '';
     if (type === 'placement') {
-      body = `<div style="padding:20px;"><div style="text-align:center;margin-bottom:20px;"><div style="font-size:48px;font-weight:900;color:#047857;">82%</div><div style="font-size:13px;color:var(--slate-500);">Overall placement rate</div></div>${State.trends.map(t => `<div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span style="font-weight:600;">${t.year}</span><span style="font-weight:700;">${t.value}%</span></div>${UI.progress(t.value)}</div>`).join('')}</div>`;
+      body = '<div style="padding:20px;"><div style="text-align:center;margin-bottom:20px;"><div style="font-size:48px;font-weight:900;color:#047857;">82%</div><div style="font-size:13px;color:var(--slate-500);">Overall placement rate</div></div>' + State.trends.map(t => '<div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span style="font-weight:600;">' + t.year + '</span><span style="font-weight:700;">' + t.value + '%</span></div>' + UI.progress(t.value) + '</div>').join('') + '</div>';
     } else if (type === 'internships') {
-      body = State.internships.map(j => `<div class="list-item"><div class="item-row"><div class="item-main"><div class="item-title">${UI.esc(j.title)}</div><div class="item-meta">${UI.esc(j.company)} · ${UI.esc(j.location)}</div></div><div class="item-side"><span class="match-badge">${UI.esc(j.type)}</span></div></div></div>`).join('');
+      body = State.internships.map(j => '<div class="list-item"><div class="item-row"><div class="item-main"><div class="item-title">' + UI.esc(j.title) + '</div><div class="item-meta">' + UI.esc(j.company) + ' \u00B7 ' + UI.esc(j.location) + '</div></div><div class="item-side"><span class="match-badge">' + UI.esc(j.type) + '</span></div></div></div>').join('');
     } else if (type === 'partners') {
       const partners = ['Google India', 'Microsoft', 'Amazon', 'Tata Motors', 'L&T', 'Infosys', 'TCS', 'Wipro', 'Deloitte', 'KPMG'];
-      body = partners.map((p, i) => `<div class="list-item"><div class="item-row" style="align-items:center;"><div class="avatar-row">${UI.avatar(p.split(' ').map(w => w[0]).join('').slice(0, 2), ['green', 'blue', 'purple', 'orange'][i % 4])}<div><div class="item-title">${UI.esc(p)}</div><div class="item-meta" style="margin:0;">Active industry partner</div></div></div></div></div>`).join('');
+      body = partners.map((p, i) => '<div class="list-item"><div class="item-row" style="align-items:center;"><div class="avatar-row">' + UI.avatar(p.split(' ').map(w => w[0]).join('').slice(0, 2), ['green', 'blue', 'purple', 'orange'][i % 4]) + '<div><div class="item-title">' + UI.esc(p) + '</div><div class="item-meta" style="margin:0;">Active industry partner</div></div></div></div></div>').join('');
     } else {
-      body = `<div style="padding:20px;text-align:center;"><div style="font-size:48px;font-weight:900;color:var(--accent-600);">₹6.8 LPA</div><div style="font-size:13px;color:var(--slate-500);margin-bottom:20px;">Average package</div></div><div style="padding:0 20px 20px;">${[['Highest Package', '₹12.5 LPA', '#047857'], ['Median Package', '₹6.5 LPA', 'var(--blue-500)'], ['Lowest Package', '₹3.5 LPA', 'var(--slate-500)']].map(r => `<div class="profile-row"><span class="profile-row-label">${r[0]}</span><span class="profile-row-value" style="color:${r[2]};">${r[1]}</span></div>`).join('')}</div>`;
+      body = '<div style="padding:20px;text-align:center;"><div style="font-size:48px;font-weight:900;color:var(--accent-600);">\u20B96.8 LPA</div><div style="font-size:13px;color:var(--slate-500);margin-bottom:20px;">Average package</div></div><div style="padding:0 20px 20px;">' + [['Highest Package', '\u20B912.5 LPA', '#047857'], ['Median Package', '\u20B96.5 LPA', 'var(--blue-500)'], ['Lowest Package', '\u20B93.5 LPA', 'var(--slate-500)']].map(r => '<div class="profile-row"><span class="profile-row-label">' + r[0] + '</span><span class="profile-row-value" style="color:' + r[2] + ';">' + r[1] + '</span></div>').join('') + '</div>';
     }
-    const titles = { placement: '📈 Placement Analytics', internships: '💼 Internships Facilitated', partners: '🏢 Industry Partners', package: '💰 Package Breakdown' };
+    const titles = { placement: '\uD83D\uDCC8 Placement Analytics', internships: '\uD83D\uDCBC Internships Facilitated', partners: '\uD83C\uDFE2 Industry Partners', package: '\uD83D\uDCB0 Package Breakdown' };
     Modal.open('genericListModal', titles[type], body);
   },
 
@@ -2355,18 +1836,18 @@ window.App = {
     const items = [];
     State.internships.forEach(j => {
       if (j.title.toLowerCase().indexOf(q) > -1 || j.company.toLowerCase().indexOf(q) > -1)
-        items.push({ type: 'Internship', icon: '💼', label: j.title + ' · ' + j.company, action: "App.switchView('student'); Modal.close();" });
+        items.push({ type: 'Internship', icon: '\uD83D\uDCBC', label: j.title + ' \u00B7 ' + j.company, action: "App.switchView('student'); Modal.close();" });
     });
     State.candidates.forEach(c => {
       if (c.name.toLowerCase().indexOf(q) > -1 || c.institute.toLowerCase().indexOf(q) > -1)
-        items.push({ type: 'Candidate', icon: '👤', label: c.name + ' · ' + c.degree, action: `Modal.close(); setTimeout(function(){ Modal.open('profileModal',${c.id}); },50);` });
+        items.push({ type: 'Candidate', icon: '\uD83D\uDC64', label: c.name + ' \u00B7 ' + c.degree, action: 'Modal.close(); setTimeout(function(){ Modal.open(\'profileModal\',' + c.id + '); },50);' });
     });
     State.mentors.forEach(m => {
       if (m.name.toLowerCase().indexOf(q) > -1 || m.expertise.join(' ').toLowerCase().indexOf(q) > -1)
-        items.push({ type: 'Mentor', icon: '👥', label: m.name + ' · ' + m.title, action: "Modal.close(); setTimeout(function(){ Modal.open('mentorsModal'); },50);" });
+        items.push({ type: 'Mentor', icon: '\uD83D\uDC65', label: m.name + ' \u00B7 ' + m.title, action: "Modal.close(); setTimeout(function(){ Modal.open('mentorsModal'); },50);" });
     });
-    if (!items.length) { results.innerHTML = `<p style="font-size:13px;color:var(--slate-400);text-align:center;padding:20px;">No results for "${UI.esc(q)}"</p>`; return; }
-    results.innerHTML = items.slice(0, 10).map(r => `<div class="search-result" onclick="${r.action}"><span class="search-result-icon">${r.icon}</span><span>${UI.esc(r.label)}</span><span class="search-result-type">${r.type}</span></div>`).join('');
+    if (!items.length) { results.innerHTML = '<p style="font-size:13px;color:var(--slate-400);text-align:center;padding:20px;">No results for "' + UI.esc(q) + '"</p>'; return; }
+    results.innerHTML = items.slice(0, 10).map(r => '<div class="search-result" onclick="' + r.action + '"><span class="search-result-icon">' + r.icon + '</span><span>' + UI.esc(r.label) + '</span><span class="search-result-type">' + r.type + '</span></div>').join('');
   },
 
   async addSkill() {
@@ -2375,11 +1856,11 @@ window.App = {
     const level = parseInt(document.getElementById('new-skill-level').value, 10);
     if (!name) { Toast.show('Skill name required', 'error'); return; }
     try {
-      const s = await API.call('/api/skills', { method: 'POST', body: { name, level, category } });
+      const s = await API.call('/api/skills', { method: 'POST', body: { name: name, level: level, category: category } });
       State.skills.push({ _id: s._id, id: s._id, name: s.name, level: s.level, category: s.category });
       Render.skills(); Render.stats(); Render.internships(); Render.insights();
       Modal.close();
-      Toast.show(`Skill "${name}" added`, 'success');
+      Toast.show('Skill "' + name + '" added', 'success');
     } catch (err) { Toast.show(err.message, 'error'); }
   },
 
@@ -2389,7 +1870,7 @@ window.App = {
     const level = parseInt(document.getElementById('new-skill-level').value, 10);
     if (!name) { Toast.show('Skill name required', 'error'); return; }
     try {
-      await API.call('/api/skills/' + id, { method: 'PUT', body: { name, level, category } });
+      await API.call('/api/skills/' + id, { method: 'PUT', body: { name: name, level: level, category: category } });
       const skill = State.skills.find(s => (s._id || s.id) === id);
       if (skill) { skill.name = name; skill.level = level; skill.category = category; }
       Render.skills(); Render.stats(); Render.internships(); Render.insights();
@@ -2401,7 +1882,7 @@ window.App = {
   deleteSkill(id) {
     const skill = State.skills.find(s => (s._id || s.id) === id);
     if (!skill) return;
-    Modal.open('confirmModal', 'Delete Skill?', `Remove "${skill.name}" from your profile?`, `App.performDeleteSkill('${id}')`);
+    Modal.open('confirmModal', 'Delete Skill?', 'Remove "' + skill.name + '" from your profile?', 'App.performDeleteSkill(\'' + id + '\')');
   },
 
   async performDeleteSkill(id) {
@@ -2416,7 +1897,8 @@ window.App = {
   async applyParsedSkills() {
     if (!State.resume || !State.resume.parsed || !State.resume.parsed.skillList) { Toast.show('No parsed skills', 'warning'); return; }
     let added = 0;
-    for (const sk of State.resume.parsed.skillList) {
+    for (let i = 0; i < State.resume.parsed.skillList.length; i++) {
+      const sk = State.resume.parsed.skillList[i];
       if (State.skills.some(s => s.name.toLowerCase() === sk.name.toLowerCase())) continue;
       try {
         const s = await API.call('/api/skills', { method: 'POST', body: sk });
@@ -2425,7 +1907,7 @@ window.App = {
       } catch (e) {}
     }
     Render.skills(); Render.stats(); Render.internships(); Render.insights();
-    Toast.show(`Added ${added} skills`, 'success');
+    Toast.show('Added ' + added + ' skills', 'success');
   },
 
   filterInternships() {
@@ -2437,7 +1919,7 @@ window.App = {
   toggleSave(id) {
     const idx = State.savedInternships.indexOf(id);
     if (idx > -1) { State.savedInternships.splice(idx, 1); Toast.show('Removed from saved', 'info'); }
-    else { State.savedInternships.push(id); Toast.show('Saved ⭐', 'success'); }
+    else { State.savedInternships.push(id); Toast.show('Saved \u2B50', 'success'); }
     API.call('/api/users/me', { method: 'PUT', body: { savedInternships: State.savedInternships } }).catch(() => {});
     const s = document.getElementById('internship-search');
     const so = document.getElementById('internship-sort');
@@ -2445,31 +1927,31 @@ window.App = {
   },
 
   async applyJob(id) {
-    const job = State.internships.find(j => (j._id || j.id) === id);
+    const job = State.internships.find(j => String(j._id || j.id) === String(id));
     if (!job) return;
-    const btn = document.getElementById(`apply-btn-${id}`);
-    if (btn) { btn.disabled = true; btn.textContent = 'Applying…'; }
+    const btn = document.getElementById('apply-btn-' + id);
+    if (btn) { btn.disabled = true; btn.textContent = 'Applying\u2026'; }
     try {
       const app = await API.call('/api/applications', {
         method: 'POST',
         body: { jobId: id, position: job.title, company: job.company },
       });
       State.applications.unshift(app);
-      if (btn) { btn.textContent = '✓ Applied'; btn.classList.add('applied'); }
+      if (btn) { btn.textContent = '\u2713 Applied'; btn.classList.add('applied'); }
       Render.applications(); Render.kanban(); Render.timeline(); Render.stats(); Render.internships();
-      Toast.show(`Applied to "${job.title}"!`, 'success');
+      Toast.show('Applied to "' + job.title + '"!', 'success');
       try {
         const notifs = await API.call('/api/notifications');
         State.notifications = notifs || State.notifications;
         Render.stats();
       } catch (e) {}
     } catch (err) {
-      if (btn) { btn.disabled = false; btn.textContent = 'Apply →'; }
+      if (btn) { btn.disabled = false; btn.textContent = 'Apply \u2192'; }
       Toast.show(err.message, 'error');
     }
   },
 
-  withdrawApplication(id) { Modal.open('confirmModal', 'Withdraw Application?', 'This cannot be undone.', `App.performWithdraw('${id}')`); },
+  withdrawApplication(id) { Modal.open('confirmModal', 'Withdraw Application?', 'This cannot be undone.', 'App.performWithdraw(\'' + id + '\')'); },
 
   async performWithdraw(id) {
     try {
@@ -2528,7 +2010,7 @@ window.App = {
       degree: 'Graduate', skills: 3,
       skillList: State.skills.slice(0, 2).map(s => ({ name: s.name, level: s.level, category: s.category })).concat([{ name: 'Communication', level: 75, category: 'General' }]),
     };
-    State.resume = { name: file.name, size: file.size, uploadedAt: new Date().toISOString(), parsed };
+    State.resume = { name: file.name, size: file.size, uploadedAt: new Date().toISOString(), parsed: parsed };
     API.call('/api/users/me', { method: 'PUT', body: { resume: State.resume } }).catch(() => {});
     Modal.close();
     setTimeout(() => Modal.open('parsedResumeModal'), 300);
@@ -2552,14 +2034,14 @@ window.App = {
       const skills = skillsRaw.split(',').map(s => s.trim()).filter(Boolean);
       const job = await API.call('/api/jobs', {
         method: 'POST',
-        body: { title, department: dept || 'CSE', location: 'Not specified', type: 'Internship', skills },
+        body: { title: title, department: dept || 'CSE', location: 'Not specified', type: 'Internship', skills: skills },
       });
       State.myPostings.unshift({ _id: job._id, id: job._id, title: job.title, location: job.location, type: job.type, applicants: 0, shortlisted: 0, status: 'Active', posted: job.posted, skills: job.skills });
       Render.myPostings(); Render.stats(); Render.candidates();
       document.getElementById('quick-job-title').value = '';
       document.getElementById('quick-job-skills').value = '';
       const matched = State.candidates.filter(c => AI.calcMatch(c.skills, skills, { experience: c.experience, rating: c.rating }) >= 80).length;
-      Toast.show(`✨ ${matched} candidates matched!`, 'success');
+      Toast.show('\u2728 ' + matched + ' candidates matched!', 'success');
     } catch (err) { Toast.show(err.message, 'error'); }
     finally { btn.innerHTML = orig; btn.disabled = false; }
   },
@@ -2575,15 +2057,15 @@ window.App = {
     if (!title || !skillsRaw) { Toast.show('Title and skills required', 'error'); return; }
     try {
       const skills = skillsRaw.split(',').map(s => s.trim()).filter(Boolean);
-      const job = await API.call('/api/jobs', { method: 'POST', body: { title, department: dept || 'CSE', location, type, salary, description, skills } });
+      const job = await API.call('/api/jobs', { method: 'POST', body: { title: title, department: dept || 'CSE', location: location, type: type, salary: salary, description: description, skills: skills } });
       State.myPostings.unshift({ _id: job._id, id: job._id, title: job.title, location: job.location, type: job.type, applicants: 0, shortlisted: 0, status: 'Active', posted: job.posted, skills: job.skills });
       Render.myPostings(); Render.stats(); Render.candidates();
       Modal.close();
-      Toast.show(`"${title}" posted!`, 'success');
+      Toast.show('"' + title + '" posted!', 'success');
     } catch (err) { Toast.show(err.message, 'error'); }
   },
 
-  deletePosting(id) { Modal.open('confirmModal', 'Close Posting?', 'This will remove it from active postings.', `App.performDeletePosting('${id}')`); },
+  deletePosting(id) { Modal.open('confirmModal', 'Close Posting?', 'This will remove it from active postings.', 'App.performDeletePosting(\'' + id + '\')'); },
   async performDeletePosting(id) {
     try { await API.call('/api/jobs/' + id, { method: 'DELETE' }); } catch (e) {}
     State.myPostings = State.myPostings.filter(p => (p._id || p.id) !== id);
@@ -2611,7 +2093,7 @@ window.App = {
     const docs = ['Degree Certificate.pdf', 'Resume.pdf', 'Internship Certificate.pdf', 'Marksheet.pdf'];
     const name = docs[Math.floor(Math.random() * docs.length)];
     try {
-      const d = await API.call('/api/documents', { method: 'POST', body: { name, type: name.endsWith('.pdf') ? 'pdf' : 'doc', size: (Math.random() * 2 + 0.5).toFixed(1) + ' MB' } });
+      const d = await API.call('/api/documents', { method: 'POST', body: { name: name, type: name.endsWith('.pdf') ? 'pdf' : 'doc', size: (Math.random() * 2 + 0.5).toFixed(1) + ' MB' } });
       State.documents.unshift({ _id: d._id, id: d._id, name: d.name, type: d.type, size: d.size, uploaded: d.uploaded });
       Modal.close();
       setTimeout(() => Modal.open('docVaultModal'), 50);
@@ -2644,28 +2126,28 @@ window.App = {
       const hasEvent = eventDays.indexOf(day) > -1;
       const isSelected = day === State.interviewSelectedDay;
       const cls = 'cal-day' + (isToday ? ' today' : '') + (hasEvent ? ' event' : '') + (isSelected ? ' selected' : '');
-      calDays += `<div class="${cls}" data-day="${day}" onclick="App.pickDay(${day})">${day}</div>`;
+      calDays += '<div class="' + cls + '" data-day="' + day + '" onclick="App.pickDay(' + day + ')">' + day + '</div>';
     }
     grid.innerHTML = calDays;
     const info = document.getElementById('interview-selection-info');
     if (info) {
       info.textContent = State.interviewSelectedDay
-        ? `Selected: ${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(State.interviewSelectedDay).padStart(2, '0')}`
+        ? 'Selected: ' + currentYear + '-' + String(currentMonth + 1).padStart(2, '0') + '-' + String(State.interviewSelectedDay).padStart(2, '0')
         : 'Select a day to schedule an interview';
     }
   },
   scheduleInterview() {
     if (!State.interviewSelectedDay) { Toast.show('Please select a day first', 'warning'); return; }
     const today = new Date();
-    const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(State.interviewSelectedDay).padStart(2, '0')}`;
+    const dateStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(State.interviewSelectedDay).padStart(2, '0');
     const jobTitle = State.myPostings.length ? State.myPostings[0].title : 'Interview';
     State.interviews.push({ id: Date.now(), title: jobTitle, company: 'New Company', date: dateStr, time: '11:00 AM', type: 'Video Call' });
     State.interviewSelectedDay = null;
     Modal.close();
     setTimeout(() => App.openInterviewModal(), 50);
-    Toast.show(`Interview scheduled for ${dateStr}!`, 'success');
+    Toast.show('Interview scheduled for ' + dateStr + '!', 'success');
   },
-  cancelInterview(id) { Modal.open('confirmModal', 'Cancel Interview?', 'Remove from schedule?', `App.performCancelInterview(${id})`); },
+  cancelInterview(id) { Modal.open('confirmModal', 'Cancel Interview?', 'Remove from schedule?', 'App.performCancelInterview(' + id + ')'); },
   performCancelInterview(id) {
     State.interviews = State.interviews.filter(iv => (iv._id || iv.id) !== id);
     Modal.close();
